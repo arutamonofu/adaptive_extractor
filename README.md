@@ -28,7 +28,26 @@ GEMINI_API_KEY=your_api_key_here
 
 You can customize model parameters in `src/aee/core/config.py` or via environment variables (e.g., `STUDENT_MODEL`, `TEACHER_MODEL`).
 
-## USAGE PIPELINE
+## Usage: GUI
+
+The primary way to interact with AutoEvoExtractor is through the Streamlit dashboard.
+
+Start the application:
+
+```bash 
+streamlit run app/Home.py
+```
+
+The interface consists of four main sections:
+
+1. Home: System status dashboard, API key configuration, and quick start guide.
+2. Training Studio:
+   - Library Manager: Upload and parse PDF articles to build your training corpus.
+   - Optimizer: Run evolutionary algorithms (MIPROv2) on the library data to generate optimized agents.
+3. Playground: An interactive sandbox to test agents (Zero-shot or Optimized) on individual files. Includes real-time Chain-of-Thought visualization and single-document metric calculation against Ground Truth.
+4. Evaluation: Benchmarking tool to calculate aggregate Precision, Recall, and F1-Score on the test split.
+
+## Usage: Command Line
 
 The workflow consists of five sequential stages. All scripts are located in the `scripts/` directory.
 
@@ -93,15 +112,22 @@ python scripts/benchmark.py \
 
 ```text
 .
+├── app/                    # Streamlit Web Application
+│   ├── Home.py             # Entry point and Dashboard
+│   └── pages/              # Application modules
+│       ├── Evaluation.py
+│       ├── Playground.py
+│       └── Training_Studio.py
 ├── data/                   # Data storage (gitignored)
-├── scripts/                # Execution scripts (ETL, Inference, Eval)
+├── scripts/                # CLI Scripts (ETL, Inference, Eval)
 ├── src/
-│   └── aee/
+│   └── aee/                # Core Package
 │       ├── agents/         # DSPy modules and logic
 │       ├── core/           # Config, logging, types
 │       ├── eval/           # Metrics and matching logic
 │       ├── ingestion/      # PDF parsers (Docling, Marker, etc.)
-│       └── tasks/          # Task definitions (Nanozymes, etc.)
+│       ├── tasks/          # Task definitions (Nanozymes, etc.)
+│       └── utils/          # Shared utilities (I/O, Dataset prep)
 ├── environment.yml         # Conda environment definition
 └── README.md               # Project documentation
 ```
