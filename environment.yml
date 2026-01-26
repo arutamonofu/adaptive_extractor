@@ -3,61 +3,26 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  # --- Core Python & Jupyter ---
   - python=3.11
   - pip
-  - jupyterlab
-  - ipywidgets
-  
-  # --- Data Science Stack (Stable Binaries) ---
   - pandas
   - numpy
-  - scipy                 # Needed for linear_sum_assignment (Hungarian Algo)
-  - matplotlib
-  - seaborn
+  - scipy
   - tqdm
-  - python-levenshtein    # Essential for Legacy Metrics in benchmark.py
-  
-  # --- PyTorch (Base) ---
-  # Installing via conda is recommended to manage CUDA/CPU versions correctly
-  # before pip installs heavy ML libraries like Marker.
-  # Remove 'cpuonly' if you have a GPU and want to use it.
   - pytorch
-  - cpuonly 
-
+  - cpuonly
   - pip:
-      # --- Frameworks & Config ---
-      - dspy-ai>=2.5.0          # LLM Orchestration (MIPROv2)
-      - pydantic>=2.0           # Data Validation
-      - pydantic-settings       # For loading .env and managing Config
-      - python-dotenv           # Loading .env files
-      - requests                # Required for aee/llm.py (Ollama streaming)
-
-      # --- Web UI ---
-      - streamlit               # Frontend
-      - watchdog                # Auto-reload for development
-
-      # --- LLM Providers ---
-      - google-generativeai     # Gemini
-      - openai                  # Fallback / Tokenizer support
-      - tiktoken                # Token counting
-
-      # --- Ingestion & PDF Parsing ---
-      # Docling & Marker are heavy. We pin some versions to avoid conflicts.
-      - docling                 # IBM Docling
-      - marker-pdf              # Marker (Note: Pulls in its own PyTorch dependencies if not present)
-      - pymupdf                 # Fast PDF processing (fitz)
-      - pdfplumber              # Legacy table extraction logic
-      
-      # --- OCR & Runtime ---
-      # Docling relies on RapidOCR. Explicitly installing onnxruntime prevents
-      # some "missing dll" errors on Windows/Linux containers.
-      - onnxruntime             # Use onnxruntime-gpu if you have CUDA setup
+      - dspy-ai>=2.5.0
+      - pydantic>=2.0
+      - pydantic-settings
+      - pyyaml
+      - python-dotenv
+      - requests
+      - docling
+      - marker-pdf
+      - onnxruntime
       - rapidocr-onnxruntime
-
-      # --- Data Utilities ---
-      - datasets                # Hugging Face Datasets
-      - huggingface_hub         # Authentication for HF
-
-      # --- Visualization (Optional) ---
-      - umap-learn              # For embedding visualization in Playground
+      - huggingface_hub
+      - python-levenshtein
+      - jupyterlab
+      - ipywidgets

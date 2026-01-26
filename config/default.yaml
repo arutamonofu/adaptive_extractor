@@ -70,9 +70,9 @@ optimization:
   num_trials: 70
   max_bootstrapped_demos: 1
   max_labeled_demos: 2
-  minibatch: true
+  minibatch: false
   minibatch_size: 1
-  view_data_batch_size: 2
+  view_data_batch_size: 3
   metric_threshold: 1.0
   init_temperature: 0.5
   random_seed: 42
