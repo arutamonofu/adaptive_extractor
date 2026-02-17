@@ -200,16 +200,19 @@ class Settings(BaseSettings):
         # Load custom config if provided
         if config_path:
             custom_path = Path(config_path)
+            # If path is not absolute, resolve it relative to config/ directory
+            if not custom_path.is_absolute():
+                custom_path = base_dir / "config" / custom_path
             if custom_path.exists():
                 try:
                     with open(custom_path, "r", encoding="utf-8") as f:
                         custom_data = yaml.safe_load(f) or {}
                         cls._deep_update(config_data, custom_data)
-                    logger.info(f"Loaded custom configuration from {config_path}")
+                    logger.info(f"Loaded custom configuration from {custom_path}")
                 except Exception as e:
-                    logger.warning(f"Failed to load custom config from {config_path}: {e}")
+                    logger.warning(f"Failed to load custom config from {custom_path}: {e}")
             else:
-                logger.warning(f"Custom config {config_path} not found. Using defaults.")
+                logger.warning(f"Custom config {custom_path} not found. Using defaults.")
 
         # Set default task config if not present
         if "task" not in config_data:

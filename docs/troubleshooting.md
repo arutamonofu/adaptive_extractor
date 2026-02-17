@@ -290,12 +290,12 @@ RateLimitError: Too many requests
    ```
 5. For extraction, cache is disabled by default. Enable explicitly:
    ```bash
-   python scripts/extract.py --config config/default.yaml --agent data/agents/agent.json --enable-cache
+   python scripts/extract.py --config default.yaml --agent data/agents/agent.json --enable-cache
    ```
 6. For optimization, cache is enabled by default. Disable if needed by clearing cache before running:
    ```bash
    rm -rf .dspy_cache
-   python scripts/optimize.py --config config/default.yaml
+   python scripts/optimize.py --config default.yaml
    ```
 
 **Symptom:** Cache from optimization affects extractions (stale responses)

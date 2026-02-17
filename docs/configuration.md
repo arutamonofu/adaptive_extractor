@@ -302,7 +302,7 @@ IMPORTANT: Extract each experiment separately. Be precise with numerical values 
 
 4. Run optimization:
    ```bash
-   python scripts/optimize.py --task nanozymes --config config/default.yaml
+   python scripts/optimize.py --task nanozymes --config default.yaml
    ```
 
 **Instruction Metadata:**
@@ -328,7 +328,7 @@ This allows you to track exactly which instruction was used for each agent.
    - Fewer trials (3 vs 20)
    - Smaller datasets (3 examples)
    - Quick testing and development
-   - Use with `--config config/default_fast.yaml`
+   - Use with `--config default_fast.yaml`
 
 ### Using Custom Config Files
 
@@ -337,10 +337,10 @@ This allows you to track exactly which instruction was used for each agent.
 python scripts/optimize.py --task nanozymes
 
 # Use fast config for testing
-python scripts/optimize.py --task nanozymes --config config/default_fast.yaml
+python scripts/optimize.py --task nanozymes --config default_fast.yaml
 
 # Use custom config
-python scripts/optimize.py --task nanozymes --config config/my_config.yaml
+python scripts/optimize.py --task nanozymes --config my_config.yaml
 ```
 
 ---
@@ -348,13 +348,13 @@ python scripts/optimize.py --task nanozymes --config config/my_config.yaml
 ## Configuration Best Practices
 
 ### Development
-- Use `config/default_fast.yaml` for quick iterations
+- Use `default_fast.yaml` for quick iterations
 - Set `PROJECT__LOG_LEVEL=DEBUG` for detailed logs
 - Enable `OPTIMIZATION__VERBOSE=true` to see optimization progress
 - Use small `OPTIMIZATION__NUM_TRIALS` (3-5) for testing
 
 ### Production
-- Use `config/default.yaml` or custom production config
+- Use `default.yaml` or custom production config
 - Set `OPTIMIZATION__NUM_TRIALS` to 20+ for best results
 - Disable `OPTIMIZATION__VERBOSE` to reduce log clutter
 - Set `PROJECT__LOG_LEVEL=INFO` or `WARNING`

@@ -38,17 +38,17 @@ python scripts/parse.py [OPTIONS]
 
 **Parse all PDFs from configured directory:**
 ```bash
-python scripts/parse.py --config config/default.yaml
+python scripts/parse.py --config default.yaml
 ```
 
 **Parse with overwrite:**
 ```bash
-python scripts/parse.py --config config/default.yaml --overwrite
+python scripts/parse.py --config default.yaml --overwrite
 ```
 
 **Parse with custom config:**
 ```bash
-python scripts/parse.py --config config/default_fast.yaml
+python scripts/parse.py --config default_fast.yaml
 ```
 
 ### Notes
@@ -92,22 +92,22 @@ python scripts/optimize.py [OPTIONS]
 
 **Basic optimization:**
 ```bash
-python scripts/optimize.py --config config/default.yaml
+python scripts/optimize.py --config default.yaml
 ```
 
 **Fast test optimization:**
 ```bash
-python scripts/optimize.py --config config/default_fast.yaml
+python scripts/optimize.py --config default_fast.yaml
 ```
 
 **With MLflow run naming:**
 ```bash
-python scripts/optimize.py --config config/default.yaml --run-name "A1_temp0.5"
+python scripts/optimize.py --config default.yaml --run-name "A1_temp0.5"
 ```
 
 **Without MLflow:**
 ```bash
-python scripts/optimize.py --config config/default.yaml --no-mlflow
+python scripts/optimize.py --config default.yaml --no-mlflow
 ```
 
 ### Prerequisites
@@ -153,14 +153,14 @@ python scripts/extract.py [OPTIONS] --agent AGENT_PATH
 **Extract from all documents:**
 ```bash
 python scripts/extract.py \
-    --config config/default.yaml \
+    --config default.yaml \
     --agent data/agents/nanozymes_latest.json
 ```
 
 **Extract with custom config:**
 ```bash
 python scripts/extract.py \
-    --config config/default_fast.yaml \
+    --config default_fast.yaml \
     --agent data/agents/nanozymes_latest.json
 ```
 
