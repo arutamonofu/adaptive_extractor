@@ -156,45 +156,11 @@ class ExperimentTracker:
         try:
             # MLflow requires string values for params
             str_params = {k: str(v) for k, v in params.items()}
-            
-            # Check for long values and truncate if necessary
-            MLFLOW_PARAM_MAX_LENGTH = 6000
-            truncated_params = {}
-            for key, value in str_params.items():
-                if len(value) > MLFLOW_PARAM_MAX_LENGTH:
-                    logger.warning(
-                        f"Parameter '{key}' ({len(value)} chars) exceeds MLflow limit "
-                        f"({MLFLOW_PARAM_MAX_LENGTH} chars). Truncating..."
-                    )
-                    # Save full value as artifact instead
-                    artifact_name = f"param_{key}_full.txt"
-                    self.log_text(value, artifact_name)
-                    # Truncate for param logging
-                    truncated_params[key] = value[:MLFLOW_PARAM_MAX_LENGTH - 3] + "..."
-                else:
-                    truncated_params[key] = value
-            
-            self.mlflow.log_params(truncated_params)
-            logger.debug(f"Logged {len(truncated_params)} parameters")
+            self.mlflow.log_params(str_params)
+            logger.debug(f"Logged {len(str_params)} parameters")
 
         except Exception as e:
             logger.warning(f"Failed to log parameters: {e}")
-
-    def log_text(self, text: str, artifact_name: str) -> None:
-        """Log text content as an artifact.
-
-        Args:
-            text: Text content to log.
-            artifact_name: Name for the artifact file.
-        """
-        if not self.enabled or not self.mlflow or not self._run_id:
-            return
-
-        try:
-            self.mlflow.log_text(text, artifact_name)
-            logger.debug(f"Logged text as artifact: {artifact_name}")
-        except Exception as e:
-            logger.warning(f"Failed to log text artifact: {e}")
 
     def log_param(self, key: str, value: Any) -> None:
         """Log a single parameter.
