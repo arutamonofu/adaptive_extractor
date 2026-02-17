@@ -290,18 +290,19 @@ RateLimitError: Too many requests
    ```
 5. For predictions, cache is disabled by default. Enable explicitly:
    ```bash
-   python scripts/predict.py --agent=... --enable-cache
+   python scripts/predict.py --config config/default.yaml --agent data/agents/agent.json --enable-cache
    ```
-6. For optimization, cache is enabled by default. Disable if needed:
+6. For optimization, cache is enabled by default. Disable if needed by clearing cache before running:
    ```bash
-   python scripts/optimize.py --task=... --no-cache
+   rm -rf .dspy_cache
+   python scripts/optimize.py --config config/default.yaml
    ```
 
 **Symptom:** Cache from optimization affects predictions (stale responses)
 
 **Solutions:**
 1. Cache is global state - it persists across script runs
-2. Use `--no-cache` flag for predictions to get fresh results
+2. For predictions, cache is disabled by default - simply don't use `--enable-cache`
 3. Clear cache between different experiment runs:
    ```bash
    rm -rf .dspy_cache

@@ -405,10 +405,10 @@ python scripts/optimize.py --no-mlflow
 ### Stage 2: Parsing
 
 ```bash
-python scripts/parse.py data/pdfs/
+python scripts/parse.py --config config/default.yaml
 ```
 
-> **Note:** Parser selection (`docling` or `marker`) and output directory are configured via YAML config file.
+> **Note:** PDF directory, parser selection (`docling` or `marker`), and output directory are configured via YAML config file.
 
 | Input | Output |
 |-------|--------|

@@ -54,11 +54,11 @@ paper2.pdf,Fe-TEMPO,oxidation,12,0.08,150
 #### Step 2: Run Pipeline
 
 ```bash
-# 1. Parse PDFs
-python scripts/parse.py --config config/default.yaml data/pdfs/
+# 1. Parse PDFs (PDF directory configured via paths.pdf_dir in YAML config)
+python scripts/parse.py --config config/default.yaml
 
 # 2. Optimize agent (requires ground truth and splits file)
-python scripts/optimize.py --task nanozymes --config config/default.yaml
+python scripts/optimize.py --config config/default.yaml
 
 # 3. Extract data from new documents
 python scripts/predict.py \

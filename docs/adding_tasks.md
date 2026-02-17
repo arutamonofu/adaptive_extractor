@@ -541,8 +541,7 @@ cp config/default.yaml config/proteins.yaml
 # Run optimization
 python scripts/optimize.py \
     --task proteins \
-    --config config/proteins.yaml \
-    --trials 20
+    --config config/proteins.yaml
 ```
 
 This will:
@@ -559,9 +558,9 @@ ls -lt data/agents/proteins_*.json | head -1
 
 # Run batch prediction
 python scripts/predict.py \
+    --config config/proteins.yaml \
     --agent data/agents/proteins_v1_2024-01-15.json \
-    --task proteins \
-    --output data/predictions/proteins_predictions.json
+    --task proteins
 ```
 
 ### Step 11: Evaluate Results
