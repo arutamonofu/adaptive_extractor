@@ -1,6 +1,6 @@
-"""Predictions repository for loading and managing prediction results.
+"""Extractions repository for loading and managing extraction results.
 
-This module provides a clean interface for loading prediction results
+This module provides a clean interface for loading extraction results
 from JSON files, with improved error handling and validation.
 """
 
@@ -16,28 +16,28 @@ from aee.shared.exceptions import DataValidationError, InvalidDataFormatError, R
 logger = logging.getLogger(__name__)
 
 
-class PredictionRepository:
-    """Repository for managing prediction results.
+class ExtractionRepository:
+    """Repository for managing extraction results.
 
-    This repository handles loading predictions from JSON files, validating
+    This repository handles loading extractions from JSON files, validating
     them against schemas, and organizing them by document.
 
     Example:
         ```python
         from aee.domain.tasks.nanozymes import NanozymeExperiment
 
-        repo = PredictionRepository()
-        predictions = repo.load(
-            results_dir=Path("data/predictions"),
+        repo = ExtractionRepository()
+        extractions = repo.load(
+            results_dir=Path("data/extractions"),
             experiment_model=NanozymeExperiment
         )
-        # predictions: Dict[str, List[NanozymeExperiment]]
+        # extractions: Dict[str, List[NanozymeExperiment]]
         ```
     """
 
     def __init__(self):
-        """Initialize the predictions repository."""
-        logger.debug("Initialized PredictionRepository")
+        """Initialize the extractions repository."""
+        logger.debug("Initialized ExtractionRepository")
 
     def load(
         self,
@@ -45,12 +45,12 @@ class PredictionRepository:
         experiment_model: Type[BaseModel],
         strict: bool = False,
     ) -> Dict[str, List[Any]]:
-        """Load predictions from JSON files in a directory.
+        """Load extractions from JSON files in a directory.
 
         Args:
-            results_dir: Directory containing prediction JSON files.
+            results_dir: Directory containing extraction JSON files.
             experiment_model: Pydantic model for validating experiments.
-            strict: If True, raise error on invalid predictions. If False, skip them.
+            strict: If True, raise error on invalid extractions. If False, skip them.
 
         Returns:
             Dictionary mapping document keys to lists of experiments.
@@ -63,17 +63,17 @@ class PredictionRepository:
         if not results_dir.exists():
             if strict:
                 raise RepositoryError(
-                    "PredictionRepository",
+                    "ExtractionRepository",
                     "load",
                     f"Results directory does not exist: {results_dir}"
                 )
             else:
-                logger.warning(f"Predictions directory does not exist: {results_dir}")
+                logger.warning(f"Extractions directory does not exist: {results_dir}")
                 return {}
 
         if not results_dir.is_dir():
             raise RepositoryError(
-                "PredictionRepository",
+                "ExtractionRepository",
                 "load",
                 f"Path is not a directory: {results_dir}"
             )
@@ -82,51 +82,51 @@ class PredictionRepository:
         if not issubclass(experiment_model, BaseModel):
             raise TypeError("experiment_model must be a Pydantic BaseModel subclass")
 
-        # Load all prediction files
-        predictions: Dict[str, List[Any]] = {}
+        # Load all extraction files
+        extractions: Dict[str, List[Any]] = {}
         stats = {"total": 0, "success": 0, "errors": 0, "experiments": 0}
 
         for file_path in sorted(results_dir.glob("*.json")):
             stats["total"] += 1
             try:
-                doc_predictions = self._load_prediction_file(
+                doc_extractions = self._load_extraction_file(
                     file_path, experiment_model, strict
                 )
-                if doc_predictions:
-                    doc_key = self._extract_document_key(file_path, doc_predictions)
-                    predictions[doc_key] = doc_predictions
+                if doc_extractions:
+                    doc_key = self._extract_document_key(file_path, doc_extractions)
+                    extractions[doc_key] = doc_extractions
                     stats["success"] += 1
-                    stats["experiments"] += len(doc_predictions)
+                    stats["experiments"] += len(doc_extractions)
                     logger.debug(
-                        f"Loaded {len(doc_predictions)} predictions from {file_path.name}"
+                        f"Loaded {len(doc_extractions)} extractions from {file_path.name}"
                     )
             except Exception as e:
                 stats["errors"] += 1
                 if strict:
                     raise
                 else:
-                    logger.warning(f"Failed to load predictions from {file_path.name}: {e}")
+                    logger.warning(f"Failed to load extractions from {file_path.name}: {e}")
                     # Add empty entry to track which documents failed
-                    predictions[file_path.stem.lower()] = []
+                    extractions[file_path.stem.lower()] = []
 
         # Log summary
         logger.info(
-            f"Loaded predictions: {stats['success']}/{stats['total']} files, "
+            f"Loaded extractions: {stats['success']}/{stats['total']} files, "
             f"{stats['experiments']} total experiments, {stats['errors']} errors"
         )
 
-        return predictions
+        return extractions
 
-    def _load_prediction_file(
+    def _load_extraction_file(
         self,
         file_path: Path,
         experiment_model: Type[BaseModel],
         strict: bool,
     ) -> List[Any]:
-        """Load and validate a single prediction file.
+        """Load and validate a single extraction file.
 
         Args:
-            file_path: Path to prediction JSON file.
+            file_path: Path to extraction JSON file.
             experiment_model: Pydantic model for validation.
             strict: Whether to raise errors or skip invalid experiments.
 
@@ -173,7 +173,7 @@ class PredictionRepository:
         if validation_errors:
             if strict:
                 raise DataValidationError(
-                    f"Predictions in {file_path.name}",
+                    f"Extractions in {file_path.name}",
                     validation_errors
                 )
             else:
@@ -185,9 +185,9 @@ class PredictionRepository:
         return validated_experiments
 
     def _extract_experiments(self, data: Dict[str, Any], file_path: Path) -> List[Dict[str, Any]]:
-        """Extract experiments from prediction data structure.
+        """Extract experiments from extraction data structure.
 
-        Handles various prediction file formats.
+        Handles various extraction file formats.
 
         Args:
             data: Loaded JSON data.
@@ -236,19 +236,19 @@ class PredictionRepository:
 
         return experiments
 
-    def _extract_document_key(self, file_path: Path, predictions: List[Any]) -> str:
-        """Extract document key from file path or prediction metadata.
+    def _extract_document_key(self, file_path: Path, extractions: List[Any]) -> str:
+        """Extract document key from file path or extraction metadata.
 
         Args:
-            file_path: Path to prediction file.
-            predictions: List of predictions (unused, for future metadata extraction).
+            file_path: Path to extraction file.
+            extractions: List of extractions (unused, for future metadata extraction).
 
         Returns:
             Normalized document key.
         """
         # Remove common suffixes from filename
         filename = file_path.stem
-        for suffix in ["_result", "_prediction", "_predictions", "_pred"]:
+        for suffix in ["_result", "_extraction", "_extractions", "_ext"]:
             if filename.endswith(suffix):
                 filename = filename[:-len(suffix)]
                 break
@@ -258,14 +258,14 @@ class PredictionRepository:
 
     def save(
         self,
-        predictions: List[BaseModel],
+        extractions: List[BaseModel],
         output_path: Path,
         document_metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
-        """Save predictions to JSON file.
+        """Save extractions to JSON file.
 
         Args:
-            predictions: List of experiment predictions.
+            extractions: List of experiment extractions.
             output_path: Path to output JSON file.
             document_metadata: Optional metadata to include in output.
 
@@ -279,7 +279,7 @@ class PredictionRepository:
             # Build output structure
             output_data = {
                 "extraction": {
-                    "experiments": [exp.model_dump() for exp in predictions]
+                    "experiments": [exp.model_dump() for exp in extractions]
                 }
             }
 
@@ -291,53 +291,53 @@ class PredictionRepository:
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(output_data, f, indent=2, ensure_ascii=False)
 
-            logger.info(f"Saved {len(predictions)} predictions to {output_path}")
+            logger.info(f"Saved {len(extractions)} extractions to {output_path}")
 
         except Exception as e:
             raise RepositoryError(
-                "PredictionRepository",
+                "ExtractionRepository",
                 "save",
-                f"Failed to save predictions: {e}"
+                f"Failed to save extractions: {e}"
             ) from e
 
     def compare_counts(
         self,
-        predictions: Dict[str, List[Any]],
+        extractions: Dict[str, List[Any]],
         ground_truth: Dict[str, List[Any]],
     ) -> Dict[str, Any]:
-        """Compare prediction and ground truth counts.
+        """Compare extraction and ground truth counts.
 
         Args:
-            predictions: Predictions loaded from load().
+            extractions: Extractions loaded from load().
             ground_truth: Ground truth loaded from GroundTruthRepository.
 
         Returns:
             Dictionary with comparison statistics.
         """
-        pred_docs = set(predictions.keys())
+        ext_docs = set(extractions.keys())
         gt_docs = set(ground_truth.keys())
 
-        matched_docs = pred_docs & gt_docs
-        missing_preds = gt_docs - pred_docs
-        extra_preds = pred_docs - gt_docs
+        matched_docs = ext_docs & gt_docs
+        missing_ext = gt_docs - ext_docs
+        extra_ext = ext_docs - gt_docs
 
         # Count experiments per document
         doc_comparisons = {}
         for doc in matched_docs:
             doc_comparisons[doc] = {
-                "predicted": len(predictions[doc]),
+                "extracted": len(extractions[doc]),
                 "ground_truth": len(ground_truth[doc]),
-                "difference": len(predictions[doc]) - len(ground_truth[doc]),
+                "difference": len(extractions[doc]) - len(ground_truth[doc]),
             }
 
         stats = {
-            "total_pred_documents": len(pred_docs),
+            "total_ext_documents": len(ext_docs),
             "total_gt_documents": len(gt_docs),
             "matched_documents": len(matched_docs),
-            "missing_predictions": sorted(missing_preds),
-            "extra_predictions": sorted(extra_preds),
+            "missing_extractions": sorted(missing_ext),
+            "extra_extractions": sorted(extra_ext),
             "document_comparisons": doc_comparisons,
-            "total_predicted_experiments": sum(len(exps) for exps in predictions.values()),
+            "total_extracted_experiments": sum(len(exps) for exps in extractions.values()),
             "total_gt_experiments": sum(len(exps) for exps in ground_truth.values()),
         }
 

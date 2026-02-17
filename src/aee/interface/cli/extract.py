@@ -1,6 +1,6 @@
-"""CLI command for batch prediction.
+"""CLI command for batch extraction.
 
-This module provides the command-line interface for running predictions
+This module provides the command-line interface for running extraction
 on documents using trained agents.
 """
 
@@ -24,9 +24,9 @@ logger = logging.getLogger(__name__)
 
 
 def create_argument_parser() -> argparse.ArgumentParser:
-    """Create argument parser for predict command."""
+    """Create argument parser for extract command."""
     parser = argparse.ArgumentParser(
-        description="Run batch predictions on documents",
+        description="Run batch extraction on documents",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
@@ -47,8 +47,8 @@ def create_argument_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def predict_command(argv: Optional[list] = None) -> int:
-    """Execute the predict command.
+def extract_command(argv: Optional[list] = None) -> int:
+    """Execute the extract command.
 
     Args:
         argv: Command-line arguments (None for sys.argv[1:]).
@@ -101,18 +101,18 @@ def predict_command(argv: Optional[list] = None) -> int:
             return 0
 
         # Use output directory from config
-        output_dir = custom_settings.paths.predictions_dir
+        output_dir = custom_settings.paths.extractions_dir
 
-        # Log prediction settings
+        # Log extraction settings
         logger.info("=" * 60)
-        logger.info("PREDICTION CONFIGURATION")
+        logger.info("EXTRACTION CONFIGURATION")
         logger.info("=" * 60)
         logger.info(f"Task: {task_name}")
         logger.info(f"Config file: {args.config}")
         logger.info(f"Agent: {args.agent}")
         logger.info(f"Documents: {len(document_ids)}")
         logger.info(f"Output: {output_dir}")
-        logger.info(f"LLM cache: {'ENABLED' if custom_settings.prediction.enable_cache else 'DISABLED'}")
+        logger.info(f"LLM cache: {'ENABLED' if custom_settings.extraction.enable_cache else 'DISABLED'}")
         logger.info("=" * 60)
 
         # Create dependencies
@@ -138,7 +138,7 @@ def predict_command(argv: Optional[list] = None) -> int:
             batch_size=1,
         )
 
-        # Execute prediction
+        # Execute extraction
         logger.info(f"Processing {len(document_ids)} documents...")
         print(f"Processing {len(document_ids)} documents...")
 
@@ -146,39 +146,39 @@ def predict_command(argv: Optional[list] = None) -> int:
 
         # Display results
         if response.success:
-            logger.info("✓ PREDICTION COMPLETE")
+            logger.info("✓ EXTRACTION COMPLETE")
             logger.info(
-                f"✓ Processed: {response.predictions_saved}/{response.total_documents}"
+                f"✓ Processed: {response.extractions_saved}/{response.total_documents}"
             )
             logger.info(f"✓ Output directory: {response.output_dir}")
 
             print(f"\n✓ Success!")
-            print(f"✓ Processed: {response.predictions_saved}/{response.total_documents}")
+            print(f"✓ Processed: {response.extractions_saved}/{response.total_documents}")
             print(f"✓ Failed: {response.failed_documents}")
             print(f"✓ Results saved to: {response.output_dir}")
 
             return 0 if response.failed_documents == 0 else 2
 
         else:
-            logger.error("✗ PREDICTION FAILED")
+            logger.error("✗ EXTRACTION FAILED")
             logger.error(f"✗ Error: {response.error_message}")
-            print(f"\n✗ Prediction failed: {response.error_message}")
+            print(f"\n✗ Extraction failed: {response.error_message}")
             return 1
 
     except KeyboardInterrupt:
-        logger.warning("Prediction interrupted by user")
-        print("\n\n⚠ Prediction interrupted by user")
+        logger.warning("Extraction interrupted by user")
+        print("\n\n⚠ Extraction interrupted by user")
         return 130
 
     except Exception as e:
-        logger.error(f"Prediction error: {e}", exc_info=True)
+        logger.error(f"Extraction error: {e}", exc_info=True)
         print(f"\n✗ Error: {e}")
         return 1
 
 
 def main():
     """Main entry point."""
-    sys.exit(predict_command())
+    sys.exit(extract_command())
 
 
 if __name__ == "__main__":

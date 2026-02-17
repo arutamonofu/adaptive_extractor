@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-"""Run batch predictions on documents.
+"""Run batch extraction on documents.
 
 This is a thin wrapper that delegates to the CLI module.
 """
 
 import sys
 
-from aee.interface.cli.predict import predict_command
+from aee.interface.cli.extract import extract_command
 
 if __name__ == "__main__":
-    sys.exit(predict_command())
+    sys.exit(extract_command())

@@ -16,7 +16,7 @@ Configuration is stored in YAML files under `config/`. The system uses a hierarc
 | [`parsing`](#parsing-configuration) | Document parser settings |
 | [`optimization`](#optimization-configuration) | DSPy MIPROv2 optimization parameters |
 | [`task`](#task-configuration) | Task definition and evaluation settings |
-| [`prediction`](#prediction-configuration) | Batch prediction behavior |
+| [`extraction`](#extraction-configuration) | Batch extraction behavior |
 
 ### Project Settings
 
@@ -41,7 +41,7 @@ paths:
   ground_truth_dir: "data/ground_truth"  # Directory containing CSV ground truth files
   splits_dir: "data/splits"              # Directory containing task-specific split files
   agents_dir: "data/agents"              # Directory for optimized agent files
-  predictions_dir: "data/predictions"    # Directory for prediction output
+  extractions_dir: "data/extractions"    # Directory for extraction output
   logs_dir: "logs"                       # Directory for log files
 ```
 
@@ -51,7 +51,7 @@ paths:
 - `PATHS__GROUND_TRUTH_DIR` - Override ground truth directory
 - `PATHS__SPLITS_DIR` - Override splits directory
 - `PATHS__AGENTS_DIR` - Override agents directory
-- `PATHS__PREDICTIONS_DIR` - Override predictions directory
+- `PATHS__EXTRACTIONS_DIR` - Override extractions directory
 - `PATHS__LOGS_DIR` - Override logs directory
 
 ---
@@ -234,21 +234,21 @@ task:
 
 ---
 
-### Prediction Configuration
+### Extraction Configuration
 
-Settings for batch prediction behavior.
+Settings for batch extraction behavior.
 
 ```yaml
-prediction:
-  enable_cache: false                        # Enable LLM response caching for predictions
+extraction:
+  enable_cache: false                        # Enable LLM response caching for extractions
 ```
 
 **Environment Variables:**
-- `PREDICTION__ENABLE_CACHE` - Enable caching (true/false)
+- `EXTRACTION__ENABLE_CACHE` - Enable caching (true/false)
 
 **Notes:**
-- Caching is disabled by default for predictions to ensure fresh results
-- Enable caching to speed up repeated predictions on the same documents
+- Caching is disabled by default for extractions to ensure fresh results
+- Enable caching to speed up repeated extractions on the same documents
 - Cache is stored in the LLM infrastructure layer
 
 ---

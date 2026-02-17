@@ -47,7 +47,7 @@ New to AutoEvoExtractor? Start here:
 ```bash
 python scripts/parse.py --config config/default.yaml --parser docling data/pdfs/
 python scripts/optimize.py --task nanozymes --config config/default.yaml --trials 20
-python scripts/predict.py --agent data/agents/nanozymes_latest.json --task nanozymes
+python scripts/extract.py --agent data/agents/nanozymes_latest.json --task nanozymes
 ```
 
 **Add a new task:**

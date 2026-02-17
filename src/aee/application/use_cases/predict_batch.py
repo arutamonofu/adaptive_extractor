@@ -1,6 +1,6 @@
-"""Batch prediction use case.
+"""Batch extraction use case.
 
-This use case handles running predictions on multiple documents
+This use case handles running extraction on multiple documents
 using a trained agent.
 """
 
@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from aee.application.services import AgentManager
 from aee.domain.tasks import TaskDefinition
-from aee.infrastructure.storage import DocumentRepository, PredictionRepository
+from aee.infrastructure.storage import DocumentRepository, ExtractionRepository
 from aee.shared.exceptions import UseCaseExecutionError
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ class BatchPredictionRequest:
         task: Task definition.
         agent_path: Path to trained agent.
         document_ids: List of document IDs to process.
-        output_dir: Directory to save predictions.
+        output_dir: Directory to save extractions.
         batch_size: Optional batch size for processing.
     """
 
@@ -40,19 +40,19 @@ class BatchPredictionRequest:
 
 @dataclass
 class BatchPredictionResponse:
-    """Response from batch prediction.
+    """Response from batch extraction.
 
     Attributes:
-        success: Whether prediction succeeded.
-        predictions_saved: Number of predictions saved.
+        success: Whether extraction succeeded.
+        extractions_saved: Number of extractions saved.
         total_documents: Total documents processed.
         failed_documents: Number of failed documents.
-        output_dir: Directory where predictions were saved.
+        output_dir: Directory where extractions were saved.
         error_message: Error message if failed.
     """
 
     success: bool
-    predictions_saved: int = 0
+    extractions_saved: int = 0
     total_documents: int = 0
     failed_documents: int = 0
     output_dir: Optional[Path] = None
@@ -60,12 +60,12 @@ class BatchPredictionResponse:
 
 
 class BatchPredictionUseCase:
-    """Use case for batch prediction.
+    """Use case for batch extraction.
 
     This use case handles:
     1. Loading the trained agent
     2. Loading documents
-    3. Running predictions
+    3. Running extractions
     4. Saving results
 
     Example:
@@ -73,14 +73,14 @@ class BatchPredictionUseCase:
         use_case = BatchPredictionUseCase(
             agent_manager=manager,
             document_repo=doc_repo,
-            prediction_repo=pred_repo,
+            extraction_repo=ext_repo,
         )
 
         request = BatchPredictionRequest(
             task=nanozyme_task,
             agent_path=Path("data/agents/agent.json"),
             document_ids=["doc1", "doc2"],
-            output_dir=Path("data/predictions"),
+            output_dir=Path("data/extractions"),
         )
 
         response = use_case.execute(request)
@@ -91,32 +91,32 @@ class BatchPredictionUseCase:
         self,
         agent_manager: AgentManager,
         document_repo: DocumentRepository,
-        prediction_repo: PredictionRepository,
+        extraction_repo: ExtractionRepository,
     ):
         """Initialize the use case.
 
         Args:
             agent_manager: Service for managing agents.
             document_repo: Repository for loading documents.
-            prediction_repo: Repository for saving predictions.
+            extraction_repo: Repository for saving extractions.
         """
         self.agent_manager = agent_manager
         self.document_repo = document_repo
-        self.prediction_repo = prediction_repo
+        self.extraction_repo = extraction_repo
         logger.debug("Initialized BatchPredictionUseCase")
 
     def execute(self, request: BatchPredictionRequest) -> BatchPredictionResponse:
-        """Execute batch prediction.
+        """Execute batch extraction.
 
         Args:
-            request: Prediction request.
+            request: Extraction request.
 
         Returns:
             Response with results.
         """
         try:
             logger.info(
-                f"Starting batch prediction for {len(request.document_ids)} documents"
+                f"Starting batch extraction for {len(request.document_ids)} documents"
             )
 
             # Load agent
@@ -128,7 +128,7 @@ class BatchPredictionUseCase:
             # Create output directory
             request.output_dir.mkdir(parents=True, exist_ok=True)
 
-            # Run predictions
+            # Run extractions
             stats = {"success": 0, "failed": 0, "total": len(request.document_ids)}
 
             for doc_id in request.document_ids:
@@ -140,13 +140,13 @@ class BatchPredictionUseCase:
                         stats["failed"] += 1
                         continue
 
-                    # Run prediction
-                    prediction = self._run_prediction(agent, doc)
+                    # Run extraction
+                    prediction = self._run_extraction(agent, doc)
 
-                    # Save prediction
+                    # Save extraction
                     output_path = request.output_dir / f"{doc_id}_result.json"
-                    self.prediction_repo.save(
-                        predictions=prediction.experiments,
+                    self.extraction_repo.save(
+                        extractions=prediction.experiments,
                         output_path=output_path,
                         document_metadata={
                             "filename": doc.metadata.filename,
@@ -163,34 +163,34 @@ class BatchPredictionUseCase:
                     continue
 
             logger.info(
-                f"Batch prediction complete: {stats['success']}/{stats['total']} succeeded"
+                f"Batch extraction complete: {stats['success']}/{stats['total']} succeeded"
             )
 
             return BatchPredictionResponse(
                 success=True,
-                predictions_saved=stats["success"],
+                extractions_saved=stats["success"],
                 total_documents=stats["total"],
                 failed_documents=stats["failed"],
                 output_dir=request.output_dir,
             )
 
         except Exception as e:
-            logger.error(f"Batch prediction failed: {e}", exc_info=True)
+            logger.error(f"Batch extraction failed: {e}", exc_info=True)
 
             return BatchPredictionResponse(
                 success=False,
                 error_message=str(e),
             )
 
-    def _run_prediction(self, agent: Any, document: Any) -> Any:
-        """Run prediction on a single document.
+    def _run_extraction(self, agent: Any, document: Any) -> Any:
+        """Run extraction on a single document.
 
         Args:
             agent: Trained agent.
             document: Document to process.
 
         Returns:
-            Prediction result.
+            Extraction result.
         """
         # Call agent with document text
         result = agent(document_text=document.text_content)

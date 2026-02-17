@@ -550,14 +550,14 @@ This will:
 3. Evaluate on validation set
 4. Save the optimized agent with metadata
 
-### Step 10: Run Predictions
+### Step 10: Run Extractions
 
 ```bash
 # Find the latest agent
 ls -lt data/agents/proteins_*.json | head -1
 
-# Run batch prediction
-python scripts/predict.py \
+# Run batch extraction
+python scripts/extract.py \
     --config config/proteins.yaml \
     --agent data/agents/proteins_v1_2024-01-15.json \
     --task proteins

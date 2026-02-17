@@ -288,9 +288,9 @@ RateLimitError: Too many requests
    ls -la .dspy_cache
    chmod -R u+rw .dspy_cache
    ```
-5. For predictions, cache is disabled by default. Enable explicitly:
+5. For extraction, cache is disabled by default. Enable explicitly:
    ```bash
-   python scripts/predict.py --config config/default.yaml --agent data/agents/agent.json --enable-cache
+   python scripts/extract.py --config config/default.yaml --agent data/agents/agent.json --enable-cache
    ```
 6. For optimization, cache is enabled by default. Disable if needed by clearing cache before running:
    ```bash
@@ -298,11 +298,11 @@ RateLimitError: Too many requests
    python scripts/optimize.py --config config/default.yaml
    ```
 
-**Symptom:** Cache from optimization affects predictions (stale responses)
+**Symptom:** Cache from optimization affects extractions (stale responses)
 
 **Solutions:**
 1. Cache is global state - it persists across script runs
-2. For predictions, cache is disabled by default - simply don't use `--enable-cache`
+2. For extraction, cache is disabled by default - simply don't use `--enable-cache`
 3. Clear cache between different experiment runs:
    ```bash
    rm -rf .dspy_cache
@@ -572,9 +572,9 @@ ValidationError: Task validation failed
 **Solutions:**
 1. Check compare_fields are present in both predicted and ground truth
 2. Verify field names match exactly (case-sensitive)
-3. Inspect a prediction vs ground truth pair:
+3. Inspect an extraction vs ground truth pair:
    ```python
-   print("Predicted:", predicted_experiments[0])
+   print("Extracted:", extracted_experiments[0])
    print("Ground Truth:", ground_truth_experiments[0])
    ```
 4. Adjust float_tolerance if comparing floats:
@@ -600,9 +600,9 @@ ValidationError: Task validation failed
 3. Review compare_fields:
    - Too strict = no matches
    - Too loose = false matches
-4. Manually review predictions:
+4. Manually review extractions:
    ```bash
-   cat data/predictions/output.json | jq .
+   cat data/extractions/output.json | jq .
    ```
 
 ---
@@ -629,7 +629,7 @@ FileNotFoundError: [Errno 2] No such file or directory: 'data/...'
    ```
 3. Create missing directories:
    ```bash
-   mkdir -p data/parsed data/agents data/predictions
+   mkdir -p data/parsed data/agents data/extractions
    ```
 4. Use absolute paths if needed:
    ```yaml

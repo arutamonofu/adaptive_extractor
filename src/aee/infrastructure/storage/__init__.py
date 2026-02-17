@@ -1,13 +1,13 @@
 """Storage infrastructure for AutoEvoExtractor.
 
 This module provides repository pattern implementations for managing
-various types of data: agents, ground truth, predictions, documents, and splits.
+various types of data: agents, ground truth, extractions, documents, and splits.
 """
 
 from .agents import AgentMetadata, AgentRepository
 from .documents import DocumentRepository
+from .extractions import ExtractionRepository
 from .ground_truth import GroundTruthRepository
-from .predictions import PredictionRepository
 from .splits import DataSplitRepository
 from .migrations import (
     AgentMigrator,
@@ -19,8 +19,8 @@ from .migrations import (
 __all__ = [
     "AgentMetadata",
     "AgentRepository",
+    "ExtractionRepository",
     "GroundTruthRepository",
-    "PredictionRepository",
     "DocumentRepository",
     "DataSplitRepository",
     # Migrations

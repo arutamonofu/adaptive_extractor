@@ -10,7 +10,7 @@ The system provides 4 main scripts:
 |--------|---------|
 | [`parse.py`](#parsepy) | Parse PDFs into structured JSON |
 | [`optimize.py`](#optimizepy) | Optimize extraction agent via MIPROv2 |
-| [`predict.py`](#predictpy) | Extract data from documents using trained agent |
+| [`extract.py`](#extractpy) | Extract data from documents using trained agent |
 | [`generate_manual_agent.py`](#generate_manual_agentpy) | Create manual agent from examples |
 
 ---
@@ -129,16 +129,16 @@ Before running optimization, prepare:
 
 ---
 
-## `predict.py`
+## `extract.py`
 
 **Purpose:** Extract data from documents using a trained agent.
 
-**Path:** `scripts/predict.py`
+**Path:** `scripts/extract.py`
 
 ### Syntax
 
 ```bash
-python scripts/predict.py [OPTIONS] --agent AGENT_PATH
+python scripts/extract.py [OPTIONS] --agent AGENT_PATH
 ```
 
 ### Options
@@ -150,25 +150,25 @@ python scripts/predict.py [OPTIONS] --agent AGENT_PATH
 
 ### Examples
 
-**Predict on all documents:**
+**Extract from all documents:**
 ```bash
-python scripts/predict.py \
+python scripts/extract.py \
     --config config/default.yaml \
     --agent data/agents/nanozymes_latest.json
 ```
 
-**Predict with custom config:**
+**Extract with custom config:**
 ```bash
-python scripts/predict.py \
+python scripts/extract.py \
     --config config/default_fast.yaml \
     --agent data/agents/nanozymes_latest.json
 ```
 
 ### Configuration
 
-**LLM caching** is controlled via `prediction.enable_cache` in YAML config:
+**LLM caching** is controlled via `extraction.enable_cache` in YAML config:
 ```yaml
-prediction:
+extraction:
   enable_cache: false  # Set to true to enable caching
 ```
 
@@ -180,10 +180,10 @@ task:
 
 ### Output
 
-- **Success:** JSON files with extracted data in `data/predictions/` (directory configured in YAML)
+- **Success:** JSON files with extracted data in `data/extractions/` (directory configured in YAML)
 - **Exit codes:**
   - `0` — All documents processed successfully
-  - `1` — Prediction error
+  - `1` — Extraction error
   - `2` — Partial success (some documents failed)
   - `130` — Interrupted by user
 
@@ -236,7 +236,7 @@ python scripts/generate_manual_agent.py --output data/agents/my_manual_agent.jso
 
 ## Arguments Summary Table
 
-| Argument | parse.py | optimize.py | predict.py | generate_manual_agent.py |
+| Argument | parse.py | optimize.py | extract.py | generate_manual_agent.py |
 |----------|:--------:|:-----------:|:----------:|:------------------------:|
 | `--config` | ✅ | ✅ | ✅ | ❌ |
 | `--overwrite` | ✅ | ❌ | ❌ | ❌ |

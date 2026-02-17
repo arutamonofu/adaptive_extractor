@@ -24,7 +24,7 @@ data/agents/*
 data/ground_truth/*
 data/parsed/*
 data/pdf/*
-data/prediction/*
+data/extractions/*
 data/splits/*
 
 # --- Notebooks ---

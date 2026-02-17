@@ -60,7 +60,7 @@ paths:
   ground_truth_dir: "data/ground_truth"
   splits_file: "data/splits/nanozymes.json"
   agents_dir: "data/agents"
-  predictions_dir: "data/predictions"
+  extractions_dir: "data/extractions"
   logs_dir: "logs"
 
 optimization:

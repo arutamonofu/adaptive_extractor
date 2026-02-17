@@ -26,7 +26,7 @@ class PathsConfig(BaseModel):
     ground_truth_dir: Path = Path("data/ground_truth")
     splits_file: Path = Path("data/splits/nanozymes.json")
     agents_dir: Path = Path("data/agents")
-    predictions_dir: Path = Path("data/predictions")
+    extractions_dir: Path = Path("data/extractions")
     logs_dir: Path = Path("logs")
 
     @field_validator("*", mode="before")
@@ -143,8 +143,8 @@ class TaskConfig(BaseModel):
         return v
 
 
-class PredictionConfig(BaseModel):
-    """Prediction configuration."""
+class ExtractionConfig(BaseModel):
+    """Extraction configuration."""
     enable_cache: bool = False
 
 
@@ -156,7 +156,7 @@ class Settings(BaseSettings):
     parsing: IngestionConfig = Field(default_factory=IngestionConfig)
     optimization: OptimizationConfig = Field(default_factory=OptimizationConfig)
     task: TaskConfig = Field(default_factory=TaskConfig)
-    prediction: PredictionConfig = Field(default_factory=PredictionConfig)
+    extraction: ExtractionConfig = Field(default_factory=ExtractionConfig)
 
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",

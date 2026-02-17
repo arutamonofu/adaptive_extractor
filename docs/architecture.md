@@ -23,7 +23,7 @@ Technical documentation for developers contributing to or integrating with AutoE
                          │
 ┌────────────────────────▼────────────────────────────────────┐
 │ APPLICATION LAYER                                           │
-│ - Use Cases: OptimizeAgent, BatchPrediction, ParseDocuments │
+│ - Use Cases: OptimizeAgent, BatchExtraction, ParseDocuments │
 │ - Services: AgentManager, DatasetBuilder, ExperimentTracker │
 │ - Orchestrates workflows and coordinates domain objects     │
 └────────────────────────┬────────────────────────────────────┘
@@ -41,7 +41,7 @@ Technical documentation for developers contributing to or integrating with AutoE
 │ - Agents (DSPy module implementations)                      │
 │ - LLM Providers (Ollama, OpenAI)                            │
 │ - Document Parsers (Docling, Marker)                        │
-│ - Repositories (Storage for agents, data, predictions)      │
+│ - Repositories (Storage for agents, data, extractions)      │
 │ - MLflow Tracking, DSPy Optimization Wrappers               │
 │ - Config (Settings, logging, environments)                  │
 └─────────────────────────────────────────────────────────────┘
@@ -58,7 +58,7 @@ Technical documentation for developers contributing to or integrating with AutoE
 interface/
 ├── cli/
 │   ├── parse.py      # Document parsing command
-│   ├── predict.py    # Batch prediction command
+│   ├── extract.py    # Batch extraction command
 │   ├── optimize.py   # Agent optimization command
 │   └── common.py     # Shared CLI utilities
 ```
@@ -114,7 +114,7 @@ def optimize_command(argv=None):
 application/
 ├── use_cases/
 │   ├── optimize_agent.py      # Agent optimization workflow
-│   ├── predict_batch.py       # Batch prediction workflow
+│   ├── extract_batch.py       # Batch extraction workflow
 │   └── parse_documents.py     # Document parsing workflow
 ├── services/
 │   ├── agent_manager.py       # Agent lifecycle management
@@ -124,7 +124,7 @@ application/
 └── dto/                       # Request/Response DTOs (defined in use_case files)
     # Note: DTOs are defined inline in their respective use case modules
     # - OptimizeAgentRequest/Response in optimize_agent.py
-    # - BatchPredictionRequest/Response in predict_batch.py
+    # - BatchPredictionRequest/Response in extract_batch.py
     # - ParseDocumentsRequest/Response in parse_documents.py
 ```
 
@@ -369,7 +369,7 @@ infrastructure/
 ├── storage/
 │   ├── agents.py      # AgentRepository with metadata
 │   ├── ground_truth.py # GroundTruthRepository
-│   ├── predictions.py  # PredictionRepository
+│   ├── extractions.py  # ExtractionRepository
 │   ├── documents.py    # DocumentRepository
 │   ├── splits.py       # DataSplitRepository
 │   └── __init__.py
@@ -609,7 +609,7 @@ To maintain compatibility with existing code:
 3. **Data Compatibility**: All existing data formats unchanged
    - Agent JSON files
    - Parsed documents
-   - Predictions
+   - Extractions
    - Ground truth CSV
 
 ## Performance Considerations

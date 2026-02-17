@@ -12,7 +12,7 @@ While AutoEvoExtractor provides CLI commands for common workflows, you can also 
 - [Task Registry](#task-registry)
 - [Agent Management](#agent-management)
 - [Dataset Building](#dataset-building)
-- [Batch Prediction](#batch-prediction)
+- [Batch Extraction](#batch-extraction)
 - [Evaluation](#evaluation)
 - [Custom Workflows](#custom-workflows)
 
@@ -357,9 +357,9 @@ print(f"Test: {len(splits['test'])} documents")
 
 ---
 
-## Batch Prediction
+## Batch Extraction
 
-### Predict on New Documents
+### Extract from New Documents
 
 ```python
 from pathlib import Path
@@ -367,7 +367,7 @@ from aee.application.use_cases import BatchPredictionUseCase, BatchPredictionReq
 from aee.infrastructure.storage import (
     AgentRepository,
     DocumentRepository,
-    PredictionRepository
+    ExtractionRepository
 )
 from aee.domain.tasks import get_task
 
@@ -375,7 +375,7 @@ from aee.domain.tasks import get_task
 task = get_task("nanozymes")
 agent_repo = AgentRepository(agents_dir=Path("data/agents"))
 doc_repo = DocumentRepository(parsed_dir=Path("data/parsed"))
-pred_repo = PredictionRepository(predictions_dir=Path("data/predictions"))
+ext_repo = ExtractionRepository(extractions_dir=Path("data/extractions"))
 
 # Load agent
 agent_path = agent_repo.get_latest(task.name)
@@ -389,26 +389,26 @@ request = BatchPredictionRequest(
     parsed_dir=Path("data/parsed")
 )
 
-# Execute prediction
+# Execute extraction
 use_case = BatchPredictionUseCase(
     agent_repo=agent_repo,
     document_repo=doc_repo,
-    prediction_repo=pred_repo
+    extraction_repo=ext_repo
 )
 
 response = use_case.execute(request)
 
 if response.success:
-    print(f"Predicted {response.num_predictions} documents")
+    print(f"Extracted {response.extractions_saved} documents")
     print(f"Saved to {response.output_path}")
 
-    # Access predictions
-    for doc_id, experiments in response.predictions.items():
+    # Access extractions
+    for doc_id, experiments in response.extractions.items():
         print(f"\n{doc_id}:")
         for exp in experiments:
             print(f"  - {exp.formula}, {exp.activity}")
 else:
-    print(f"Prediction failed: {response.error_message}")
+    print(f"Extraction failed: {response.error_message}")
 ```
 
 ### Single Document Prediction
@@ -468,21 +468,21 @@ if agent_path:
 
 ## Evaluation
 
-### Evaluate Predictions
+### Evaluate Extractions
 
 ```python
 from pathlib import Path
 from aee.domain.evaluation import ExperimentMatcher, TaskMetric
 from aee.infrastructure.storage import (
     GroundTruthRepository,
-    PredictionRepository
+    ExtractionRepository
 )
 from aee.domain.tasks import get_task
 
 # Setup
 task = get_task("nanozymes")
 gt_repo = GroundTruthRepository(gt_dir=Path("data/ground_truth"))
-pred_repo = PredictionRepository(predictions_dir=Path("data/predictions"))
+ext_repo = ExtractionRepository(extractions_dir=Path("data/extractions"))
 
 # Load ground truth experiments
 ground_truth = gt_repo.load_experiments(
@@ -490,9 +490,10 @@ ground_truth = gt_repo.load_experiments(
     document_ids=["paper1", "paper2"]
 )
 
-# Load predictions
-predictions = pred_repo.load_predictions(
-    Path("data/predictions/nanozymes_predictions.json")
+# Load extractions
+extractions = ext_repo.load(
+    results_dir=Path("data/extractions"),
+    experiment_model=NanozymeExperiment
 )
 
 # Create matcher with task-specific settings
@@ -503,7 +504,7 @@ matcher = ExperimentMatcher(
 
 # Compute metrics
 metric = TaskMetric(matcher=matcher)
-results = metric.compute_all(predictions, ground_truth)
+results = metric.compute_all(extractions, ground_truth)
 
 # Display results
 print(f"Precision: {results['precision']:.3f}")
@@ -529,10 +530,10 @@ metric = TaskMetric(matcher=matcher)
 
 # Evaluate per-document
 for doc_id in ["paper1", "paper2"]:
-    pred = predictions.get(doc_id, [])
+    ext = extractions.get(doc_id, [])
     gt = ground_truth.get(doc_id, [])
 
-    results = metric.compute_all({doc_id: pred}, {doc_id: gt})
+    results = metric.compute_all({doc_id: ext}, {doc_id: gt})
 
     print(f"\n{doc_id}:")
     print(f"  Precision: {results['precision']:.3f}")
@@ -808,7 +809,7 @@ from aee import settings
 # For optimization: enable cache (default)
 student_lm = setup_student(settings, enable_cache=True)
 
-# For predictions: disable cache for fresh results
+# For extraction: disable cache for fresh results
 student_lm = setup_student(settings, enable_cache=False)
 
 # Note: Cache is global state managed by DSPy

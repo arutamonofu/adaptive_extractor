@@ -61,7 +61,7 @@ python scripts/parse.py --config config/default.yaml
 python scripts/optimize.py --config config/default.yaml
 
 # 3. Extract data from new documents
-python scripts/predict.py \
+python scripts/extract.py \
     --config config/default.yaml \
     --agent data/agents/nanozymes_latest.json
 
@@ -99,7 +99,7 @@ autoevoextractor/
 │   ├── infrastructure/   # LLM, parsers, storage, MLflow
 │   ├── interface/        # CLI commands
 │   └── shared/           # Exceptions, utilities
-├── scripts/              # Entry points: parse.py, optimize.py, predict.py, generate_manual_agent.py
+├── scripts/              # Entry points: parse.py, optimize.py, extract.py, generate_manual_agent.py
 ├── config/
 │   ├── *.yaml            # YAML configurations
 │   └── initial_instructions/  # Initial instructions for optimization
@@ -110,7 +110,7 @@ autoevoextractor/
     ├── splits/           # Task-specific splits (created by you)
     │   └── nanozymes.json
     ├── agents/           # Trained agents (created by optimize.py)
-    └── predictions/      # Extraction results (created by predict.py)
+    └── extractions/      # Extraction results (created by extract.py)
 ```
 
 ---

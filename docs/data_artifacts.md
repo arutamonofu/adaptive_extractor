@@ -39,13 +39,13 @@ Complete guide to all files and directories in AutoEvoExtractor.
                                  │
                                  ▼
                     ┌─────────────────────────┐
-                    │   predict.py            │
+                    │   extract.py            │
                     │   (data extraction)     │
                     └─────────────────────────┘
                                  │
                                  ▼
                     ┌─────────────────────────┐
-                    │   data/predictions/     │
+                    │   data/extractions/     │
                     │   (results)             │
                     └─────────────────────────┘
 ```
@@ -63,7 +63,7 @@ autoevoextractor/
 │   ├── splits/                 # Task-specific split files
 │   │   └── nanozymes.json      # Train/test/val split for nanozymes task
 │   ├── agents/                 # Trained agents
-│   ├── predictions/            # Extraction results
+│   ├── extractions/            # Extraction results
 ├── config/
 │   ├── *.yaml                  # YAML configurations
 │   └── initial_instructions/   # Instructions for optimization
@@ -305,35 +305,34 @@ paths:
 
 ---
 
-### 6. `data/predictions/`
+### 6. `data/extractions/`
 
-**Type:** Output data (results)  
-**Created by:** `scripts/predict.py`  
+**Type:** Output data (results)
+**Created by:** `scripts/extract.py`
 **Format:** JSON
 
 **Description:** Results of data extraction from documents.
 
 **Directory structure:**
 ```
-data/predictions/
-├── nanozymes_predictions.json
-├── proteins_predictions.json
+data/extractions/
+├── nanozymes_extractions.json
+├── proteins_extractions.json
 └── ...
 ```
 
 **JSON structure:**
 ```json
 {
-  "predictions": {
-    "paper1": [
+  "extraction": {
+    "experiments": [
       {
         "formula": "Cu-TEMPO",
         "activity": "oxidation",
         "km_value": 0.05,
         "vmax_value": 100
       }
-    ],
-    "paper2": [...]
+    ]
   },
   "metadata": {
     "agent_path": "data/agents/nanozymes_latest.json",
@@ -346,7 +345,7 @@ data/predictions/
 **Configuration:**
 ```yaml
 paths:
-  predictions_dir: "data/predictions"
+  extractions_dir: "data/extractions"
 ```
 
 ---
@@ -441,15 +440,15 @@ python scripts/optimize.py --task nanozymes
 | `data/splits/nanozymes.json` | |
 | `data/parsed/*.json` | |
 
-### Stage 5: Prediction
+### Stage 5: Extraction
 
 ```bash
-python scripts/predict.py --agent data/agents/nanozymes_latest.json
+python scripts/extract.py --agent data/agents/nanozymes_latest.json
 ```
 
 | Input | Output |
 |-------|--------|
-| `data/agents/*.json` | `data/predictions/*.json` |
+| `data/agents/*.json` | `data/extractions/*.json` |
 | `data/parsed/*.json` | |
 
 ### Stage 6: Evaluation (optional)
@@ -523,5 +522,5 @@ export PATHS__SPLITS_FILE="data/my_splits.json"
 
 # Output data
 export PATHS__AGENTS_DIR="data/my_agents"
-export PATHS__PREDICTIONS_DIR="data/my_predictions"
+export PATHS__EXTRACTIONS_DIR="data/my_extractions"
 ```
