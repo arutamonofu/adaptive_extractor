@@ -13,7 +13,7 @@ from time import monotonic
 import dspy
 from aee.infrastructure.config import settings
 from aee.infrastructure.config.settings import LLMInstanceConfig, Settings
-from aee.infrastructure.llm.circuit_breaker import CircuitBreaker
+from aee.infrastructure.llm.circuit_breaker import CircuitBreaker, CircuitBreakerError
 
 logger = logging.getLogger(__name__)
 

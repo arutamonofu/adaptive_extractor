@@ -253,6 +253,9 @@ class Settings(BaseSettings):
             # Skip empty strings
             if not value:
                 return False
+            # Skip URLs (http://, https://, ftp://, etc.)
+            if re.match(r'^[a-zA-Z][a-zA-Z0-9+.-]*://', value):
+                return False
             # Check for path separators or file extensions
             return '/' in value or value.endswith(('.txt', '.yaml', '.yml', '.json', '.csv', '.md'))
 
