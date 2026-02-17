@@ -14,7 +14,7 @@ AutoEvoExtractor automatically extracts structured experimental data from scient
 ### Installation
 
 ```bash
-git clone https://github.com/yourusername/autoevoextractor.git
+git clone https://github.com/ai-chem/AutoEvoExtractor.git
 cd autoevoextractor
 
 conda env create -f environment.yml

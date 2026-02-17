@@ -726,7 +726,7 @@ If you're still experiencing issues:
    project:
      log_level: "DEBUG"
    ```
-3. **Search issues**: Check [GitHub Issues](https://github.com/anthropics/autoevoextractor/issues)
+3. **Search issues**: Check [GitHub Issues](https://github.com/ai-chem/AutoEvoExtractor/issues)
 4. **Ask for help**: Open a new issue with:
    - Complete error message
    - Configuration file

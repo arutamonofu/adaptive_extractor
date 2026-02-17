@@ -726,4 +726,4 @@ This provides a complete, production-ready example.
 ## Getting Help
 
 - Architecture questions: See `docs/architecture.md`
-- Issues: https://github.com/anthropics/autoevoextractor/issues
+- Issues: https://github.com/ai-chem/AutoEvoExtractor/issues
