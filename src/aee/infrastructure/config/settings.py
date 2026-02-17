@@ -224,7 +224,65 @@ class Settings(BaseSettings):
                 }
             }
 
+        # Resolve all paths relative to project root
+        config_data = cls._resolve_paths(config_data, base_dir)
+
         return cls(**config_data)
+
+    @classmethod
+    def _resolve_paths(cls, config_data: dict, base_dir: Path) -> dict:
+        """Resolve path values relative to project root.
+
+        Recursively processes the config dictionary and converts values
+        that look like file paths (strings containing '/' or ending with
+        common file extensions) to absolute paths.
+
+        Args:
+            config_data: Configuration dictionary.
+            base_dir: Project root directory.
+
+        Returns:
+            Configuration dictionary with resolved paths.
+        """
+        import re
+
+        def is_path_like(value: str) -> bool:
+            """Check if a string looks like a file path."""
+            if not isinstance(value, str):
+                return False
+            # Skip empty strings
+            if not value:
+                return False
+            # Check for path separators or file extensions
+            return '/' in value or value.endswith(('.txt', '.yaml', '.yml', '.json', '.csv', '.md'))
+
+        def resolve_value(value: Any) -> Any:
+            """Resolve a single value if it's a path."""
+            if is_path_like(value):
+                path = Path(value)
+                # Don't modify absolute paths
+                if path.is_absolute():
+                    return value
+                # Resolve relative paths against project root
+                resolved = base_dir / path
+                return str(resolved)
+            return value
+
+        def process_dict(d: dict) -> dict:
+            """Recursively process dictionary."""
+            result = {}
+            for k, v in d.items():
+                if isinstance(v, dict):
+                    result[k] = process_dict(v)
+                elif isinstance(v, list):
+                    result[k] = [resolve_value(item) if isinstance(item, str) else item for item in v]
+                elif isinstance(v, str):
+                    result[k] = resolve_value(v)
+                else:
+                    result[k] = v
+            return result
+
+        return process_dict(config_data)
 
     @staticmethod
     def _deep_update(base_dict: dict, update_with: dict) -> None:

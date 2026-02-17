@@ -214,7 +214,7 @@ Task-specific settings including the initial instruction for prompt optimization
 ```yaml
 task:
   name: "nanozymes"                          # Task name (must match registered task)
-  initial_instruction_file: "initial_instructions/nanozymes_sota.txt"  # Initial instruction file
+  initial_instruction_file: "config/initial_instructions/nanozymes_sota.txt"  # Initial instruction file
 
   evaluation:
     float_tolerance: 0.05                    # Tolerance for float comparisons
@@ -229,7 +229,7 @@ task:
 
 **Environment Variables:**
 - `TASK__NAME` - Task name
-- `TASK__INITIAL_INSTRUCTION_FILE` - Path to initial instruction file (relative to config/)
+- `TASK__INITIAL_INSTRUCTION_FILE` - Path to initial instruction file (relative to project root)
 - `TASK__EVALUATION__FLOAT_TOLERANCE` - Float comparison tolerance
 
 ---
@@ -297,7 +297,7 @@ IMPORTANT: Extract each experiment separately. Be precise with numerical values 
 3. Update your config:
    ```yaml
    task:
-     initial_instruction_file: "initial_instructions/nanozymes_v2.txt"
+     initial_instruction_file: "config/initial_instructions/nanozymes_v2.txt"
    ```
 
 4. Run optimization:
