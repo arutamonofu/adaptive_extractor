@@ -1,10 +1,5 @@
 # config/default.yaml
 #
-# Application configuration:
-# - Secrets (API keys) → .env (never commit!)
-# - Infrastructure (URLs, URIs, LOG_LEVEL) → .env (environment-specific)
-# - Application parameters → this file (versioned)
-#
 # Configuration priority (highest → lowest):
 # 1. Environment variables (.env)
 # 2. YAML files (this file)
@@ -12,7 +7,6 @@
 
 project:
   name: "autoevoextractor"
-  # LOG_LEVEL removed from YAML — set only in .env
 
 llm:
   student:

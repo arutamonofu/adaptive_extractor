@@ -508,17 +508,25 @@ class Settings(BaseSettings):
     @classmethod
     def load(cls, config_path: Optional[Union[str, Path]] = None) -> "Settings":
         """Load settings with the following priority:
-        
+
         1. Default YAML (relative to this file)
         2. Custom YAML (if provided)
         3. Environment variables (handled by Pydantic)
-        
+
         Args:
             config_path: Path to custom configuration YAML file.
-            
+
         Returns:
             Settings: Loaded settings instance.
         """
+        # Load .env file before applying env overrides
+        from dotenv import load_dotenv
+        base_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
+        env_file = base_dir / ".env"
+        if env_file.exists():
+            load_dotenv(env_file)
+            logger.info(f"Loaded environment variables from {env_file}")
+
         # Calculate base directory correctly (project root)
         base_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
         default_path = base_dir / "config" / "default.yaml"
