@@ -10,6 +10,7 @@ venv/
 env/
 .conda/
 environment.yml.local
+*.egg-info
 
 # --- IDEs ---
 .vscode/
