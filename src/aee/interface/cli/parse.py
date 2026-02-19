@@ -138,7 +138,7 @@ def parse_command(argv: Optional[list] = None) -> int:
         logger.info(f"Config file: {args.config}")
         logger.info(f"PDF files: {len(pdf_files)}")
         logger.info(f"Output: {output_dir}")
-        logger.info(f"Parser: {custom_settings.parser.name}")
+        logger.info(f"Parser: {custom_settings.parsing.parser}")
         logger.info(f"Overwrite: {args.overwrite}")
         logger.info("=" * 60)
 
@@ -152,7 +152,7 @@ def parse_command(argv: Optional[list] = None) -> int:
         request = ParseDocumentsRequest(
             input_paths=pdf_files,
             output_dir=output_dir,
-            parser_name=custom_settings.parser.name,
+            parser_name=custom_settings.parsing.parser,
             overwrite=args.overwrite,
         )
 

@@ -19,7 +19,6 @@ environment.yml.local
 *.swo
 *~
 .claude/
-QWEN.md
 
 # --- Data (raw & intermediate) ---
 data/agents/*
@@ -28,6 +27,7 @@ data/parsed/*
 data/pdf/*
 data/extractions/*
 data/splits/*
+data/downloaded
 
 # --- Notebooks ---
 notebooks

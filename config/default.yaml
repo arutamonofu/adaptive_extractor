@@ -11,7 +11,7 @@ project:
 llm:
   student:
     use_ollama: true
-    model: "gpt-oss:120b"
+    model: "mistral-small3.1-24b-128k:latest"
     timeout: 600
     max_retries: 5
     temperature: 0.0
@@ -61,6 +61,7 @@ parsing:
     num_threads: 4
     do_ocr: true
     do_table_structure: true
+    ocr_backend: "onnxruntime"
   marker:
     device: "cpu"
 

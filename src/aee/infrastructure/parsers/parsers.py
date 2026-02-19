@@ -8,7 +8,7 @@ from typing import Any, Union, Optional
 # Docling
 from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling.datamodel.base_models import InputFormat
-from docling.datamodel.pipeline_options import PdfPipelineOptions, TableStructureOptions
+from docling.datamodel.pipeline_options import PdfPipelineOptions, TableStructureOptions, RapidOcrOptions
 from docling.datamodel.accelerator_options import AcceleratorOptions, AcceleratorDevice
 from docling_core.types.doc.labels import DocItemLabel
 from docling_core.types.doc.document import (
@@ -30,19 +30,19 @@ logger = logging.getLogger(__name__)
 
 class DoclingParser(BaseParser):
     """Parser using Docling library."""
-    
+
     def __init__(self, config: Optional[Any] = None):
         """Initialize the Docling parser.
-        
+
         Args:
             config: Configuration for the parser. If None, uses settings.parsing.docling.
         """
         self.cfg = config or settings.parsing.docling
         self.converter = self._create_converter()
-    
+
     def _create_converter(self) -> DocumentConverter:
         """Create and configure the Docling document converter.
-        
+
         Returns:
             DocumentConverter: Configured converter instance.
         """
@@ -52,7 +52,15 @@ class DoclingParser(BaseParser):
         pipeline_options.table_structure_options = TableStructureOptions(
             do_cell_matching=True
         )
-        
+
+        # Configure OCR engine (RapidOCR with specified backend)
+        if self.cfg.do_ocr:
+            ocr_options = RapidOcrOptions(
+                backend=self.cfg.ocr_backend,
+            )
+            pipeline_options.ocr_options = ocr_options
+            logger.info(f"RapidOCR configured with backend: {self.cfg.ocr_backend}")
+
         # Map device string to accelerator device enum
         device_mapping = {
             "cuda": AcceleratorDevice.CUDA,

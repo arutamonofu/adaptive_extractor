@@ -24,6 +24,8 @@ pip install -e .
 
 ### Basic Workflow
 
+> **Example below is for the nanozymes task.** For other tasks, adjust file paths and field names accordingly.
+
 #### Step 1: Data Preparation
 
 **Place PDF files in `data/pdf/` directory:**
@@ -32,7 +34,7 @@ mkdir -p data/pdfs
 cp /path/to/your/papers/*.pdf data/pdf/
 ```
 
-**Create ground truth data** (`data/ground_truth/{task}.csv`):
+**Create ground truth data** (`data/ground_truth/nanozymes.csv`):
 ```csv
 filename,formula,activity,length,km_value,vmax_value
 paper1.pdf,Cu-TEMPO,oxidation,10,0.05,100

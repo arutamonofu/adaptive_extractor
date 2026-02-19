@@ -224,6 +224,7 @@ class DoclingConfig(BaseModel):
     num_threads: int = 4
     do_ocr: bool = True
     do_table_structure: bool = True
+    ocr_backend: Literal["onnxruntime", "torch", "openvino", "paddlepaddle"] = "onnxruntime"
 
 
 class MarkerConfig(BaseModel):
