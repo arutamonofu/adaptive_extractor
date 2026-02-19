@@ -84,18 +84,18 @@ def setup_language_models(config=None, enable_cache: bool = True):
     return student_lm, teacher_lm
 
 
-def create_dependencies(args, task, config=None):
+def create_dependencies(args, task, settings):
     """Create dependencies for the use case.
 
     Args:
         args: Parsed command-line arguments.
         task: Task definition.
-        config: Optional Settings object to use (defaults to global settings).
+        settings: Settings object to use.
 
     Returns:
         Tuple of (dataset_builder, agent_manager, gt_repo, tracker, validator).
     """
-    current_settings = config or settings
+    current_settings = settings
 
     # Create repositories
     doc_repo = DocumentRepository(parsed_dir=current_settings.paths.parsed_dir)
