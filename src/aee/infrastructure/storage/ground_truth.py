@@ -23,14 +23,15 @@ class GroundTruthRepository:
 
     Example:
         ```python
-        from aee.domain.tasks.nanozymes import row_to_nanozyme
+        from aee.domain.tasks import get_task
+
+        task = get_task("nanozymes")
 
         repo = GroundTruthRepository()
         gt_data = repo.load(
             csv_path=Path("data/ground_truth.csv"),
-            row_converter=row_to_nanozyme
+            row_converter=task["row_converter"]
         )
-        # gt_data: Dict[str, List[NanozymeExperiment]]
         ```
     """
 

@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from aee.domain.tasks import TaskDefinition
+from aee.domain.tasks import TaskConfig
 from aee.infrastructure.storage import DataSplitRepository, GroundTruthRepository
 from aee.shared.exceptions import DataValidationError
 
@@ -95,7 +95,7 @@ class DataValidator:
         self,
         gt_path: Path,
         split_path: Path,
-        task: TaskDefinition,
+        task: TaskConfig,
         required_splits: Optional[List[str]] = None,
     ) -> ValidationResult:
         """Validate data splits against ground truth.
@@ -210,7 +210,7 @@ class DataValidator:
     def validate_ground_truth(
         self,
         gt_path: Path,
-        task: TaskDefinition,
+        task: TaskConfig,
         min_examples: int = 1,
     ) -> ValidationResult:
         """Validate ground truth data quality.

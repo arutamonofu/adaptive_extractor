@@ -23,7 +23,7 @@ from aee.shared.exceptions import (
     DataValidationError,
     InvalidDataFormatError,
 )
-from aee.domain.tasks.nanozymes import row_to_nanozyme, NanozymeExperiment
+from aee.domain.tasks import load_task_from_yaml, get_task
 
 
 class TestAgentRepository:
@@ -190,13 +190,13 @@ class TestAgentRepository:
 class TestGroundTruthRepository:
     """Tests for GroundTruthRepository."""
 
-    def test_load_ground_truth_success(self, sample_gt_csv: Path):
+    def test_load_ground_truth_success(self, sample_gt_csv: Path, row_converter):
         """Test successful GT loading from CSV."""
         repo = GroundTruthRepository()
-        
+
         gt_data = repo.load(
             csv_path=sample_gt_csv,
-            row_converter=row_to_nanozyme,
+            row_converter=row_converter,
         )
         
         # Verify structure
@@ -208,7 +208,7 @@ class TestGroundTruthRepository:
         assert len(gt_data["paper1"]) == 1
         assert gt_data["paper1"][0].formula == "Fe3O4"
 
-    def test_load_nonexistent_csv(self, tmp_path: Path):
+    def test_load_nonexistent_csv(self, tmp_path: Path, row_converter):
         """Test loading GT from nonexistent file."""
         repo = GroundTruthRepository()
         nonexistent_path = tmp_path / "nonexistent.csv"
@@ -216,10 +216,10 @@ class TestGroundTruthRepository:
         with pytest.raises(DataNotFoundError):
             repo.load(
                 csv_path=nonexistent_path,
-                row_converter=row_to_nanozyme,
+                row_converter=row_converter,
             )
 
-    def test_load_empty_csv(self, tmp_path: Path):
+    def test_load_empty_csv(self, tmp_path: Path, row_converter):
         """Test loading empty CSV file."""
         repo = GroundTruthRepository()
         empty_csv = tmp_path / "empty.csv"
@@ -228,10 +228,10 @@ class TestGroundTruthRepository:
         with pytest.raises(InvalidDataFormatError, match="empty"):
             repo.load(
                 csv_path=empty_csv,
-                row_converter=row_to_nanozyme,
+                row_converter=row_converter,
             )
 
-    def test_load_csv_missing_id_column(self, tmp_path: Path):
+    def test_load_csv_missing_id_column(self, tmp_path: Path, row_converter):
         """Test loading CSV without valid ID column."""
         repo = GroundTruthRepository()
         bad_csv = tmp_path / "bad.csv"
@@ -244,7 +244,7 @@ class TestGroundTruthRepository:
         with pytest.raises(DataValidationError, match="ID column"):
             repo.load(
                 csv_path=bad_csv,
-                row_converter=row_to_nanozyme,
+                row_converter=row_converter,
             )
 
     def test_normalize_document_key(self):
@@ -260,13 +260,13 @@ class TestGroundTruthRepository:
         # Test case normalization
         assert repo._normalize_document_key("Paper1.PDF") == "paper1"
 
-    def test_validate_coverage(self, sample_gt_csv: Path):
+    def test_validate_coverage(self, sample_gt_csv: Path, row_converter):
         """Test GT coverage validation."""
         repo = GroundTruthRepository()
         
         gt_data = repo.load(
             csv_path=sample_gt_csv,
-            row_converter=row_to_nanozyme,
+            row_converter=row_converter,
         )
         
         available_docs = ["paper1", "paper2", "paper3", "paper4", "paper5"]

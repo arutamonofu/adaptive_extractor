@@ -1,12 +1,9 @@
-"""Task plugin system for AutoEvoExtractor.
+"""Task system for AutoEvoExtractor.
 
-This module provides the task plugin infrastructure including base classes,
-registry, and utilities for managing extraction tasks.
-
-Supports both classic TaskDefinition approach and new dynamic TaskConfig approach.
+This module provides the task infrastructure including configuration,
+dynamic model generation, and registry for managing extraction tasks.
 """
 
-from .base import TaskDefinition
 from .config import FieldSpec, RowConverterConfig, TaskConfig
 from .dynamic_models import (
     create_all_models,
@@ -14,7 +11,6 @@ from .dynamic_models import (
     create_output_model,
     create_row_converter,
 )
-from .dynamic_wrapper import ConfigBackedTask
 from .loader import (
     load_task_complete,
     load_task_from_yaml,
@@ -23,17 +19,15 @@ from .loader import (
 )
 from .registry import (
     TaskRegistry,
+    get_config,
     get_global_registry,
     get_task,
     load_and_register_task,
-    register_task,
+    register_config,
 )
 from .signature import create_signature, generate_default_instruction
 
 __all__ = [
-    # Base classes
-    "TaskDefinition",
-    "ConfigBackedTask",
     # Configuration
     "TaskConfig",
     "FieldSpec",
@@ -54,7 +48,8 @@ __all__ = [
     # Registry
     "TaskRegistry",
     "get_global_registry",
+    "get_config",
     "get_task",
-    "register_task",
+    "register_config",
     "load_and_register_task",
 ]

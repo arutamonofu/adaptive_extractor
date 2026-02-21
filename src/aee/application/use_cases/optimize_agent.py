@@ -17,8 +17,7 @@ from aee.application.services import AgentManager, DatasetBuilder, DataValidator
 from aee.application.services.data_validator import ValidationResult
 from aee.domain.agents.base import BaseAgent
 from aee.domain.evaluation import TaskMetric
-from aee.domain.tasks import TaskDefinition
-from aee.infrastructure.config.instruction_loader import InstructionLoader
+from aee.domain.tasks import TaskConfig
 from aee.infrastructure.storage import GroundTruthRepository
 from aee.shared.exceptions import UseCaseExecutionError
 
@@ -35,7 +34,8 @@ class OptimizeAgentRequest:
     """Request for agent optimization.
 
     Attributes:
-        task: Task definition to optimize for.
+        task: Task definition to optimize for (TaskConfig).
+        signature_class: DSPy signature class for the task.
         gt_path: Path to ground truth CSV.
         split_path: Path to data splits JSON.
         train_split_name: Name of training split (default: "train").
@@ -63,7 +63,8 @@ class OptimizeAgentRequest:
         instruction_hash: SHA256 hash (first 12 chars) of the initial instruction.
     """
 
-    task: TaskDefinition
+    task: TaskConfig
+    signature_class: Any
     gt_path: Path
     split_path: Path
     student_lm: "LM"
@@ -234,7 +235,7 @@ class OptimizeAgentUseCase:
             metric = self._create_metric(request)
 
             # Step 4: Create base agent
-            base_agent = self._create_base_agent(request)
+            base_agent = self._create_base_agent(request, request.signature_class)
 
             # Step 5: Configure optimization
             config = self._build_optimization_config(request, len(trainset), len(valset))
@@ -347,19 +348,20 @@ class OptimizeAgentUseCase:
         return TaskMetric(task_config, float_tolerance=request.task.float_tolerance)
 
     def _create_base_agent(
-        self, request: OptimizeAgentRequest
+        self, request: OptimizeAgentRequest, signature_class: Any
     ) -> BaseAgent:
         """Create the base agent to optimize.
 
         Args:
             request: Optimization request.
+            signature_class: DSPy signature class for the task.
 
         Returns:
             Base agent instance for optimization.
         """
         from aee.infrastructure.agents import UniversalExtractor
 
-        return UniversalExtractor(signature_class=request.task.signature)
+        return UniversalExtractor(signature_class=signature_class)
 
     def _run_optimization(
         self,

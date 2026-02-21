@@ -14,10 +14,7 @@ from typing import Any, Dict, List
 
 import pytest
 
-from aee.domain.tasks.nanozymes import (
-    NanozymeExperiment,
-    NanozymeExtractionOutput,
-)
+from aee.domain.tasks import get_task
 
 
 class TestExtractFlow:
@@ -78,11 +75,11 @@ class TestExtractFlow:
             "agent_path": agent_path,
         }
 
-    def test_extraction_output_format(self):
+    def test_extraction_output_format(self, experiment_model, output_model):
         """Test extraction output format is valid JSON."""
         # Create mock extraction result
         experiments = [
-            NanozymeExperiment(
+            experiment_model(
                 formula="Fe3O4",
                 activity="peroxidase",
                 length=10.0,
@@ -91,7 +88,7 @@ class TestExtractFlow:
                 ph=7.0,
                 temperature=25.0,
             ),
-            NanozymeExperiment(
+            experiment_model(
                 formula="CuO",
                 activity="oxidase",
                 length=20.0,
@@ -101,21 +98,21 @@ class TestExtractFlow:
                 temperature=30.0,
             ),
         ]
-        
-        output = NanozymeExtractionOutput(experiments=experiments)
-        
+
+        output = output_model(experiments=experiments)
+
         # Verify serialization
         output_dict = output.model_dump()
         assert "experiments" in output_dict
         assert len(output_dict["experiments"]) == 2
         assert output_dict["experiments"][0]["formula"] == "Fe3O4"
-        
+
         # Verify JSON serialization
         json_str = output.model_dump_json(indent=2)
         assert isinstance(json_str, str)
-        
+
         # Verify deserialization
-        loaded = NanozymeExtractionOutput.model_validate_json(json_str)
+        loaded = output_model.model_validate_json(json_str)
         assert len(loaded.experiments) == 2
         assert loaded.experiments[0].formula == "Fe3O4"
 
@@ -158,54 +155,45 @@ class TestTaskPluginIntegration:
     """Integration tests for task plugin system."""
 
     def test_nanozyme_task_creation(self):
-        """Test NanozymeTask can be created and validated."""
-        from aee.domain.tasks.nanozymes import NanozymeTask
-        
-        instruction = "Extract nanozyme experiments from scientific articles."
-        task = NanozymeTask(initial_instruction=instruction)
-        
+        """Test nanozyme task can be loaded from YAML and validated."""
+        task = get_task("nanozymes")
+
         # Validate task
-        task.validate()
-        
+        task["config"].validate()
+
         # Verify properties
-        assert task.name == "nanozymes"
-        assert len(task.compare_fields) > 0
-        assert "formula" in task.compare_fields
-        assert "activity" in task.compare_fields
-        assert task.float_tolerance == 0.10
+        assert task["config"].name == "nanozymes"
+        assert len(task["config"].compare_fields) > 0
+        assert "formula" in task["config"].compare_fields
+        assert "activity" in task["config"].compare_fields
 
     def test_task_registry_integration(self):
         """Test task registration and retrieval."""
         from aee.domain.tasks import TaskRegistry
-        from aee.domain.tasks.nanozymes import NanozymeTask
-        
+
         registry = TaskRegistry()
-        
-        # Create and register task
-        instruction = "Extract nanozyme experiments."
-        task = NanozymeTask(initial_instruction=instruction)
-        registry.register(task)
-        
+
+        # Load and register task from YAML
+        yaml_path = "src/aee/domain/tasks/nanozymes/task.yaml"
+        registry.register_from_yaml(yaml_path)
+
         # Verify registration
         assert registry.count() == 1
         assert registry.has("nanozymes")
-        
+
         # Retrieve task
-        retrieved = registry.get("nanozymes")
-        assert retrieved.name == "nanozymes"
-        assert retrieved.description is not None
+        retrieved = registry.get_task("nanozymes")
+        assert retrieved["config"].name == "nanozymes"
+        assert retrieved["config"].description is not None
 
     def test_task_validate_compare_fields(self):
         """Test that compare_fields validation works."""
-        from aee.domain.tasks.nanozymes import NanozymeTask
-        
-        instruction = "Extract nanozyme experiments."
-        task = NanozymeTask(initial_instruction=instruction)
-        
+        task = get_task("nanozymes")
+
         # Validate - should pass
-        task.validate()
-        
+        task["config"].validate()
+
         # Verify all compare_fields exist in experiment model
-        experiment_fields = set(task.experiment_model.model_fields.keys())
-        for field in task.compare_fields:
+        experiment_fields = set(task["experiment_model"].model_fields.keys())
+        for field in task["config"].compare_fields:
             assert field in experiment_fields, f"Field '{field}' not in experiment model"

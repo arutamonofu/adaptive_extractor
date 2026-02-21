@@ -572,6 +572,19 @@ class Settings(BaseSettings):
                     "compare_fields": []
                 }
             }
+        else:
+            # Normalize task config: convert legacy flat structure to nested evaluation structure
+            # YAML uses: task.compare_fields, task.float_tolerance
+            # Settings expects: task.evaluation.compare_fields, task.evaluation.float_tolerance
+            task_data = config_data["task"]
+            if "evaluation" not in task_data:
+                # Extract flat fields and move to evaluation
+                compare_fields = task_data.pop("compare_fields", [])
+                float_tolerance = task_data.pop("float_tolerance", 0.05)
+                task_data["evaluation"] = {
+                    "compare_fields": compare_fields,
+                    "float_tolerance": float_tolerance,
+                }
 
         # Resolve all paths relative to project root
         config_data = cls._resolve_paths(config_data, base_dir)

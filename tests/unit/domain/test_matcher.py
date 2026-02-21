@@ -10,7 +10,14 @@ Tests cover:
 import pytest
 
 from aee.domain.evaluation.matcher import ExperimentMatcher
-from aee.domain.tasks.nanozymes import NanozymeExperiment
+
+
+# Make experiment_model available module-level
+@pytest.fixture(autouse=True)
+def _setup_experiment_model(nanozyme_task, request):
+    """Setup experiment_model at module level."""
+    # Store in module globals for access by tests
+    request.module.experiment_model = nanozyme_task["experiment_model"]
 
 
 class TestStringNormalization:
@@ -153,6 +160,7 @@ class TestIsMatch:
 class TestAlignPairs:
     """Tests for Hungarian algorithm alignment."""
 
+    @pytest.mark.usefixtures("experiment_model")
     def test_align_empty_lists(self):
         """Test alignment of empty lists."""
         matcher = ExperimentMatcher(fields_to_compare=["formula"])
@@ -164,12 +172,12 @@ class TestAlignPairs:
         """Test alignment when predictions are empty."""
         matcher = ExperimentMatcher(fields_to_compare=["formula"])
         gts = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase"),
-            NanozymeExperiment(formula="CuO", activity="oxidase"),
+            experiment_model(formula="Fe3O4", activity="peroxidase"),
+            experiment_model(formula="CuO", activity="oxidase"),
         ]
-        
+
         pairs = matcher.align_pairs([], gts)
-        
+
         # All GTs should be paired with None (False Negatives)
         assert len(pairs) == 2
         assert all(pred is None for pred, _ in pairs)
@@ -178,12 +186,12 @@ class TestAlignPairs:
         """Test alignment when ground truths are empty."""
         matcher = ExperimentMatcher(fields_to_compare=["formula"])
         preds = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase"),
-            NanozymeExperiment(formula="CuO", activity="oxidase"),
+            experiment_model(formula="Fe3O4", activity="peroxidase"),
+            experiment_model(formula="CuO", activity="oxidase"),
         ]
-        
+
         pairs = matcher.align_pairs(preds, [])
-        
+
         # All preds should be paired with None (False Positives)
         assert len(pairs) == 2
         assert all(gt is None for _, gt in pairs)
@@ -191,18 +199,18 @@ class TestAlignPairs:
     def test_align_perfect_match(self):
         """Test alignment with perfect matches."""
         matcher = ExperimentMatcher(fields_to_compare=["formula", "activity"])
-        
+
         preds = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase"),
-            NanozymeExperiment(formula="CuO", activity="oxidase"),
+            experiment_model(formula="Fe3O4", activity="peroxidase"),
+            experiment_model(formula="CuO", activity="oxidase"),
         ]
         gts = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase"),
-            NanozymeExperiment(formula="CuO", activity="oxidase"),
+            experiment_model(formula="Fe3O4", activity="peroxidase"),
+            experiment_model(formula="CuO", activity="oxidase"),
         ]
-        
+
         pairs = matcher.align_pairs(preds, gts)
-        
+
         assert len(pairs) == 2
         # All should be matched (no None pairs)
         assert all(pred is not None and gt is not None for pred, gt in pairs)
@@ -210,22 +218,22 @@ class TestAlignPairs:
     def test_align_partial_match(self):
         """Test alignment with partial matches."""
         matcher = ExperimentMatcher(fields_to_compare=["formula", "activity"])
-        
+
         preds = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase"),
-            NanozymeExperiment(formula="Au", activity="catalase"),  # Extra (FP)
+            experiment_model(formula="Fe3O4", activity="peroxidase"),
+            experiment_model(formula="Au", activity="catalase"),  # Extra (FP)
         ]
         gts = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase"),
-            NanozymeExperiment(formula="ZnO", activity="catalase"),  # Missing (FN)
+            experiment_model(formula="Fe3O4", activity="peroxidase"),
+            experiment_model(formula="ZnO", activity="catalase"),  # Missing (FN)
         ]
-        
+
         pairs = matcher.align_pairs(preds, gts)
-        
+
         # Should have 2 pairs (Hungarian algorithm balances)
         # 1 matched pair (Fe3O4) + 1 mismatched pair (Au vs ZnO)
         assert len(pairs) == 2
-        
+
         # Fe3O4 should be matched correctly
         fe_matches = [
             (p, g) for p, g in pairs
@@ -236,21 +244,21 @@ class TestAlignPairs:
     def test_align_multiple_candidates(self):
         """Test alignment with multiple similar candidates."""
         matcher = ExperimentMatcher(fields_to_compare=["formula", "activity", "length"])
-        
+
         preds = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase", length=10.0),
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase", length=12.0),  # Closer to GT
+            experiment_model(formula="Fe3O4", activity="peroxidase", length=10.0),
+            experiment_model(formula="Fe3O4", activity="peroxidase", length=12.0),  # Closer to GT
         ]
         gts = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase", length=11.0),
+            experiment_model(formula="Fe3O4", activity="peroxidase", length=11.0),
         ]
-        
+
         pairs = matcher.align_pairs(preds, gts)
-        
+
         # Should have 2 pairs (1 matched + 1 unmatched pred)
         matched_pairs = [(p, g) for p, g in pairs if p is not None and g is not None]
         assert len(matched_pairs) == 1
-        
+
         # The closer one (length=12.0, diff=1.0) should be matched
         # vs (length=10.0, diff=1.0) - both have same diff, so first might be chosen
         # Just verify one of them is matched
@@ -266,12 +274,12 @@ class TestF1Computation:
         matcher = ExperimentMatcher(fields_to_compare=["formula", "activity"])
         
         preds = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase"),
-            NanozymeExperiment(formula="CuO", activity="oxidase"),
+            experiment_model(formula="Fe3O4", activity="peroxidase"),
+            experiment_model(formula="CuO", activity="oxidase"),
         ]
         gts = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase"),
-            NanozymeExperiment(formula="CuO", activity="oxidase"),
+            experiment_model(formula="Fe3O4", activity="peroxidase"),
+            experiment_model(formula="CuO", activity="oxidase"),
         ]
         
         report = matcher.get_detailed_report(preds, gts)
@@ -285,11 +293,11 @@ class TestF1Computation:
         matcher = ExperimentMatcher(fields_to_compare=["formula", "activity"])
         
         preds = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase"),
-            NanozymeExperiment(formula="Au", activity="catalase"),  # FP
+            experiment_model(formula="Fe3O4", activity="peroxidase"),
+            experiment_model(formula="Au", activity="catalase"),  # FP
         ]
         gts = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase"),
+            experiment_model(formula="Fe3O4", activity="peroxidase"),
         ]
         
         report = matcher.get_detailed_report(preds, gts)
@@ -303,11 +311,11 @@ class TestF1Computation:
         matcher = ExperimentMatcher(fields_to_compare=["formula", "activity"])
         
         preds = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase"),
+            experiment_model(formula="Fe3O4", activity="peroxidase"),
         ]
         gts = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase"),
-            NanozymeExperiment(formula="CuO", activity="oxidase"),  # FN
+            experiment_model(formula="Fe3O4", activity="peroxidase"),
+            experiment_model(formula="CuO", activity="oxidase"),  # FN
         ]
         
         report = matcher.get_detailed_report(preds, gts)
@@ -321,10 +329,10 @@ class TestF1Computation:
         matcher = ExperimentMatcher(fields_to_compare=["formula", "activity"])
         
         preds = [
-            NanozymeExperiment(formula="Au", activity="catalase"),
+            experiment_model(formula="Au", activity="catalase"),
         ]
         gts = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase"),
+            experiment_model(formula="Fe3O4", activity="peroxidase"),
         ]
         
         report = matcher.get_detailed_report(preds, gts)
@@ -338,11 +346,11 @@ class TestF1Computation:
         matcher = ExperimentMatcher(fields_to_compare=["formula", "activity"])
         
         preds = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase"),
+            experiment_model(formula="Fe3O4", activity="peroxidase"),
         ]
         gts = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase"),
-            NanozymeExperiment(formula="CuO", activity="oxidase"),
+            experiment_model(formula="Fe3O4", activity="peroxidase"),
+            experiment_model(formula="CuO", activity="oxidase"),
         ]
         
         f1 = matcher.get_optimization_score(preds, gts)
@@ -355,10 +363,10 @@ class TestF1Computation:
         matcher = ExperimentMatcher(fields_to_compare=["formula", "activity", "length"])
         
         preds = [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase", length=10.0),
+            experiment_model(formula="Fe3O4", activity="peroxidase", length=10.0),
         ]
         gts = [
-            NanozymeExperiment(formula="Fe3O4", activity="oxidase", length=10.0),  # Wrong activity
+            experiment_model(formula="Fe3O4", activity="oxidase", length=10.0),  # Wrong activity
         ]
         
         report = matcher.get_detailed_report(preds, gts)

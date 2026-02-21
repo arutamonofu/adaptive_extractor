@@ -17,7 +17,6 @@ from aee import setup_logging
 from aee.application.services import AgentManager, DatasetBuilder, ExperimentTracker
 from aee.application.use_cases import OptimizeAgentRequest, OptimizeAgentUseCase
 from aee.domain.tasks import get_task
-from aee.infrastructure.config.instruction_loader import InstructionLoader
 from aee.infrastructure.config.settings import Settings
 from aee.infrastructure.storage import (
     AgentRepository,
@@ -130,9 +129,7 @@ def create_dependencies(args, task, settings):
 
 
 def load_task_with_instruction(task_name: str, config) -> tuple:
-    """Load task with initial instruction from config.
-
-    Supports both classic TaskDefinition approach and new YAML-based approach.
+    """Load task with initial instruction from YAML config.
 
     Args:
         task_name: Name of the task to load.
@@ -142,64 +139,36 @@ def load_task_with_instruction(task_name: str, config) -> tuple:
         Tuple of (task, instruction_metadata_dict).
 
     Raises:
-        MissingConfigError: If instruction file is not found or empty.
-        ValueError: If task cannot be created with the instruction.
+        FileNotFoundError: If YAML config not found.
     """
-    # Try new YAML-based approach first
+    # Load from YAML
     yaml_path = Path(__file__).resolve().parent.parent.parent / "domain" / "tasks" / task_name / "task.yaml"
 
-    if yaml_path.exists():
-        # Use new YAML-based task configuration
-        from aee.domain.tasks import load_task_from_yaml, ConfigBackedTask
+    if not yaml_path.exists():
+        raise FileNotFoundError(f"Task YAML config not found: {yaml_path}")
 
-        task_config = load_task_from_yaml(yaml_path)
-        task = ConfigBackedTask(task_config)
+    from aee.domain.tasks import load_task_from_yaml, get_task
 
-        # Get instruction metadata
-        instruction = task_config.get_instruction()
-        instruction_hash = task_config.get_instruction_hash()
+    # Load and register task from YAML
+    load_task_from_yaml(yaml_path)
+    
+    # Get task components from registry
+    task = get_task(task_name)
 
-        logger.info(
-            f"Loaded task from YAML: {yaml_path} "
-            f"(instruction: {len(instruction)} chars, hash: {instruction_hash})"
-        )
-
-        return task, {
-            "instruction": instruction,
-            "instruction_length": len(instruction),
-            "instruction_hash": instruction_hash,
-        }
-
-    # Fallback to classic approach
-    logger.info(f"YAML config not found at {yaml_path}, using classic approach")
-
-    # Calculate config directory for instruction loader
-    config_dir = Path(__file__).resolve().parent.parent.parent.parent.parent / "config"
-
-    # Load instruction using InstructionLoader
-    instruction_loader = InstructionLoader(config_dir=config_dir)
-    instruction_metadata = instruction_loader.load_with_metadata(config.task.initial_instruction_file)
+    # Get instruction metadata
+    instruction = task["config"].get_instruction()
+    instruction_hash = task["config"].get_instruction_hash()
 
     logger.info(
-        f"Loaded initial instruction: {config.task.initial_instruction_file} "
-        f"({instruction_metadata['instruction_length']} chars, hash: {instruction_metadata['instruction_hash']})"
+        f"Loaded task from YAML: {yaml_path} "
+        f"(instruction: {len(instruction)} chars, hash: {instruction_hash})"
     )
 
-    # Get task class and instantiate with instruction
-    # Import the task module to trigger registration
-    if task_name == "nanozymes":
-        from aee.domain.tasks.nanozymes import NanozymeTask
-        task = NanozymeTask(initial_instruction=instruction_metadata["instruction"])
-    else:
-        # For other tasks that may not support instruction injection yet
-        raise ValueError(
-            f"Task '{task_name}' requires explicit instruction loading. "
-            f"Only 'nanozymes' task supports this feature currently."
-        )
-
-    logger.info(f"Task loaded: {task.name} - {task.description}")
-
-    return task, instruction_metadata
+    return task, {
+        "instruction": instruction,
+        "instruction_length": len(instruction),
+        "instruction_hash": instruction_hash,
+    }
 
 
 def optimize_command(argv: Optional[list] = None) -> int:
@@ -263,6 +232,10 @@ def optimize_command(argv: Optional[list] = None) -> int:
         train_limit = custom_settings.optimization.train_split
         val_limit = custom_settings.optimization.total_load
 
+        # task is a dict from get_task() with keys: config, experiment_model, output_model, signature, row_converter
+        # OptimizeAgentRequest expects task: TaskConfig, so we pass task["config"]
+        # But we also need to pass signature separately for agent creation
+
         # Log all optimization settings for transparency
         logger.info("=" * 60)
         logger.info("OPTIMIZATION CONFIGURATION")
@@ -300,7 +273,8 @@ def optimize_command(argv: Optional[list] = None) -> int:
         logger.info("=" * 60)
 
         request = OptimizeAgentRequest(
-            task=task,
+            task=task["config"],
+            signature_class=task["signature"],
             gt_path=gt_path,
             split_path=split_path,
             student_lm=student_lm,

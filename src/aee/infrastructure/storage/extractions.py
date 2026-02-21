@@ -24,14 +24,15 @@ class ExtractionRepository:
 
     Example:
         ```python
-        from aee.domain.tasks.nanozymes import NanozymeExperiment
+        from aee.domain.tasks import get_task
+
+        task = get_task("nanozymes")
 
         repo = ExtractionRepository()
         extractions = repo.load(
             results_dir=Path("data/extractions"),
-            experiment_model=NanozymeExperiment
+            experiment_model=task["experiment_model"]
         )
-        # extractions: Dict[str, List[NanozymeExperiment]]
         ```
     """
 

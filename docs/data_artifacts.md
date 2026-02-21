@@ -1,47 +1,17 @@
 # Data Artifacts Guide
 
-Complete guide to all files and directories in AutoEvoExtractor.
+Guide to all files and directories in AutoEvoExtractor.
 
-## Data Pipeline Overview
+## Data Pipeline
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Source PDFs   │ ──► │    Parsed       │     │  Ground Truth   │
-│   (input)       │     │  (intermediate) │     │   (input)       │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-         │                       │                       │
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     data/splits/[task].json                     │
-│                    (data split configuration)                   │
-└─────────────────────────────────────────────────────────────────┘
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
-                                 ▼
-                    ┌─────────────────────────┐
-                    │   optimize.py           │
-                    │   (agent optimization)  │
-                    └─────────────────────────┘
-                                 │
-                                 ▼
-                    ┌─────────────────────────┐
-                    │   data/agents/          │
-                    │   (trained agents)      │
-                    └─────────────────────────┘
-                                 │
-                                 ▼
-                    ┌─────────────────────────┐
-                    │   extract.py            │
-                    │   (data extraction)     │
-                    └─────────────────────────┘
-                                 │
-                                 ▼
-                    ┌─────────────────────────┐
-                    │   data/extractions/     │
-                    │   (results)             │
-                    └─────────────────────────┘
+PDFs → Parsed JSON ─┬─→ Optimize → Agent
+                    │
+Ground Truth CSV ───┘
+                    │
+Splits JSON ────────┘
+                    │
+                    └─→ Extract → Results
 ```
 
 ---
@@ -49,370 +19,66 @@ Complete guide to all files and directories in AutoEvoExtractor.
 ## Directory Structure
 
 ```
-autoevoextractor/
-├── data/
-│   ├── pdf/                    # Source PDF files
-│   ├── parsed/                 # Parsed JSON documents
-│   ├── ground_truth/           # CSV files with annotations
-│   ├── splits/                 # Task-specific split files
-│   │   └── nanozymes.json      # Train/test/val split for nanozymes task
-│   ├── agents/                 # Trained agents
-│   └── extractions/            # Extraction results
-├── config/
-│   ├── *.yaml                  # YAML configurations
-│   └── initial_instructions/   # Instructions for optimization
-└── src/aee/domain/tasks/
-    └── [task_name]/
-        └── task.yaml           # Task definition (YAML-backed tasks, v2.0+)
+data/
+├── pdf/              # Source PDF files (user-provided)
+├── parsed/           # Parsed JSON (created by parse.py)
+├── ground_truth/     # Training CSV (user-provided)
+├── splits/           # Data splits JSON (user-provided)
+├── agents/           # Trained agents (created by optimize.py)
+└── extractions/      # Results (created by extract.py)
 ```
 
 ---
 
-## Detailed Artifact Description
+## Input Files
 
-### 1. `data/pdf/`
+### 1. PDF Files (`data/pdf/`)
 
-**Type:** Input data
+**Format:** PDF documents  
 **Created by:** User
-**Format:** PDF files
 
-**Description:** Directory for source PDF documents. Place scientific articles here for processing.
+Place scientific articles here for processing.
 
-**Example structure:**
 ```
 data/pdf/
 ├── paper1.pdf
 ├── paper2.pdf
-├── article_2024.pdf
 └── ...
 ```
 
-**Configuration:**
-```yaml
-paths:
-  pdf_dir: "data/pdf"
-```
-
-> **For environment variables reference**, see [Configuration Guide](configuration.md#environment-variables).
+> **Config:** `paths.pdf_dir`
 
 ---
 
-### 2. `data/parsed/`
+### 2. Ground Truth CSV (`data/ground_truth/{task}.csv`)
 
-**Type:** Intermediate data  
-**Created by:** `scripts/parse.py`  
-**Format:** JSON
-
-**Description:** Parsed documents in structured format. Each PDF corresponds to one JSON file.
-
-**JSON file structure:**
-```json
-{
-  "doc_id": "paper1",
-  "text_content": "Full extracted text...",
-  "metadata": {
-    "source_file": "paper1.pdf",
-    "parsed_at": "2026-02-17T10:30:00",
-    "parser": "docling",
-    "pages": 12
-  },
-  "sections": [
-    {
-      "title": "Abstract",
-      "content": "..."
-    }
-  ]
-}
-```
-
-**Directory structure:**
-```
-data/parsed/
-├── paper1.json
-├── paper2.json
-└── ...
-```
-
-**Configuration:**
-```yaml
-paths:
-  parsed_dir: "data/parsed"
-```
-
----
-
-### 3. `data/ground_truth/`
-
-**Type:** Input data (training)
+**Format:** CSV  
 **Created by:** User
-**Format:** CSV
 
-**Description:** CSV files with annotated data for agent training and validation.
+Training data for optimization.
 
-**CSV structure:**
 ```csv
-filename,formula,activity,length,km_value,vmax_value
-paper1.pdf,Cu-TEMPO,oxidation,10,0.05,100
-paper1.pdf,Fe-TEMPO,oxidation,12,0.08,150
-paper2.pdf,Mn-Salen,epoxidation,8,0.12,80
+filename,formula,activity,length,km_value,km_unit
+paper1.pdf,Fe3O4,peroxidase,10,0.05,mM
+paper2.pdf,CuO,oxidase,20,0.08,mM
 ```
 
 **Required columns:**
-- `filename` — Document identifier. Supported formats:
-  - With extension: `paper1.pdf`
-  - Without extension: `paper1`
-  - Alternative column names: `pdf`, `source`, `doi`, `document`
-- Other columns depend on task (defined in task definition)
+- `filename` — PDF filename (must match file in `data/pdf/`)
+- Task-specific fields (defined in `task.yaml`)
 
-> **Note:** The system normalizes document identifiers by removing file extensions and converting to lowercase. Both formats (with/without `.pdf`) are supported.
-
-**Directory structure:**
-```
-data/ground_truth/
-├── nanozymes.csv
-├── proteins.csv
-└── ...
-```
-
-**Configuration:**
-```yaml
-paths:
-  ground_truth_dir: "data/ground_truth"
-```
+> **Config:** `paths.ground_truth_dir`  
+> **Guide:** [Adding Tasks](adding_tasks.md)
 
 ---
 
-### 4. `data/splits/[task].json`
+### 3. Data Splits JSON (`data/splits/{task}.json`)
 
-**Type:** Intermediate data (configuration)
-**Created by:** User (manually or via script)
-**Format:** JSON
+**Format:** JSON  
+**Created by:** User
 
-**Description:** File with document splits for training, validation, and testing. Each task has its own split file in the `data/splits/` directory. The path to the splits file is specified in the configuration (`paths.splits_file`).
+Defines train/validation/test splits.
 
-**⚠️ Important:** Creating this file requires careful attention, as the quality of the split affects optimization results. Do not automate this process without understanding your data.
-
-**JSON structure:**
-```json
-{
-  "train": ["paper1", "paper2", "paper3", "paper4", "paper5"],
-  "val": ["paper6", "paper7"],
-  "test": ["paper8", "paper9", "paper10"]
-}
-```
-
-**Split names:**
-- `train` — training set (required)
-- `val` or `validation` — validation set (optional)
-- `test` — test set (optional)
-- `train_manual` — manual examples for `generate_manual_agent.py` (optional)
-
-**How to create:**
-
-Method 1: Manually (recommended for small datasets)
-```json
-{
-  "train": ["doc_001", "doc_002", "doc_003"],
-  "val": ["doc_004"],
-  "test": ["doc_005", "doc_006"]
-}
-```
-
-Method 2: Via Python API
-```python
-from pathlib import Path
-from aee.infrastructure.storage import DataSplitRepository
-import pandas as pd
-
-# Load ground truth
-gt_path = Path("data/ground_truth/nanozymes.csv")
-df = pd.read_csv(gt_path)
-
-# Get unique document IDs
-doc_ids = df["filename"].str.replace(".pdf", "").unique().tolist()
-
-# Create split
-repo = DataSplitRepository()
-splits = repo.create_random_split(
-    documents=doc_ids,
-    train_ratio=0.8,
-    seed=42
-)
-
-# Save to task-specific file
-output_path = Path("data/splits/nanozymes.json")
-repo.save_splits(splits, output_path)
-print(f"Train: {len(splits['train'])}, Val: {len(splits['val'])}")
-```
-
-**Configuration:**
-```yaml
-paths:
-  splits_file: "data/splits/nanozymes.json"
-```
-
-> **For environment variables reference**, see [Configuration Guide](configuration.md#environment-variables).
-
----
-
-### 5. `data/agents/`
-
-**Type:** Output data (models)
-**Created by:** `scripts/optimize.py`
-**Format:** JSON + metadata
-
-**Description:** Optimized agents for data extraction. Each agent contains trained prompts and examples.
-
-**Directory structure:**
-```
-data/agents/
-├── nanozymes_v1_2026-02-17T15-30-00.json
-├── nanozymes_v1_2026-02-17T15-30-00.meta.json
-├── nanozymes_v2_2026-02-18T10-00-00.json
-└── manual_nanozymes.json
-```
-
-**Files:**
-- `*_v{version}_{timestamp}.json` — the agent itself (DSPy module)
-- `*_v{version}_{timestamp}.meta.json` — metadata (metrics, date, model version)
-
-**Metadata structure:**
-```json
-{
-  "task_name": "nanozymes",
-  "created_at": "2026-02-17T15:30:00",
-  "model_version": "mistral-small3.1-24b-128k:latest",
-  "metrics": {
-    "f1": 0.85,
-    "precision": 0.87,
-    "recall": 0.83
-  },
-  "config_snapshot": {
-    "num_trials": 70,
-    "train_split": 20
-  },
-  "instruction_hash": "a1b2c3d4e5f6",
-  "initial_instruction_file": "config/initial_instructions/nanozymes_sota.txt",
-  "description": "Optimized with 70 trials"
-}
-```
-
-**New in v2.0:** Agents track instruction provenance via `instruction_hash` (SHA256, first 12 chars) and `initial_instruction_file` for reproducibility.
-
-**Configuration:**
-```yaml
-paths:
-  agents_dir: "data/agents"
-```
-
----
-
-### 6. `data/extractions/`
-
-**Type:** Output data (results)
-**Created by:** `scripts/extract.py`
-**Format:** JSON
-
-**Description:** Results of data extraction from documents.
-
-**Directory structure:**
-```
-data/extractions/
-├── nanozymes_extractions.json
-├── proteins_extractions.json
-└── ...
-```
-
-**JSON structure:**
-```json
-{
-  "extraction": {
-    "experiments": [
-      {
-        "formula": "Cu-TEMPO",
-        "activity": "oxidation",
-        "km_value": 0.05,
-        "vmax_value": 100
-      }
-    ]
-  },
-  "metadata": {
-    "agent_path": "data/agents/nanozymes_latest.json",
-    "task": "nanozymes",
-    "processed_at": "2026-02-17T16:00:00"
-  }
-}
-```
-
-**Configuration:**
-```yaml
-paths:
-  extractions_dir: "data/extractions"
-```
-
-> **For environment variables reference**, see [Configuration Guide](configuration.md#environment-variables).
-
----
-
-### 7. `logs/`
-
-**Type:** Logs
-**Created by:** Automatically during script execution
-**Format:** Text files
-
-**Description:** Execution logs are configured via `project.log_level` in YAML config. Log output destination depends on your logging configuration (console, file, or both).
-
-> **For logging configuration reference**, see [Configuration Guide](configuration.md#project-settings).
-
----
-
-## Task Configuration (YAML-backed Tasks)
-
-**Type:** Task definition
-**Format:** YAML
-
-**Description:** New in v2.0, tasks can be defined via YAML configuration files instead of Python code. This allows adding new extraction tasks without code changes.
-
-**Location:**
-```
-src/aee/domain/tasks/
-└── [task_name]/
-    └── task.yaml
-```
-
-> **For complete task configuration guide**, including field specifications, examples, and step-by-step instructions, see [Adding New Extraction Tasks](adding_tasks.md).
-
----
-
-## Data Lifecycle
-
-### Stage 1: Preparation
-
-| Artifact | Action |
-|----------|--------|
-| `data/pdf/` | Place PDF files |
-| `data/ground_truth/` | Create CSV with annotations |
-| `data/splits/[task].json` | Create data split configuration |
-
-### Stage 2: Parsing
-
-```bash
-python scripts/parse.py --config default.yaml
-```
-
-> **Note:** PDF directory, parser selection (`docling` or `marker`), and output directory are configured via YAML config file.
-
-| Input | Output |
-|-------|--------|
-| `data/pdf/*.pdf` | `data/parsed/*.json` |
-
-### Stage 3: Data Splitting
-
-| Artifact | Action |
-|----------|--------|
-| `data/splits/[task].json` | Create manually or via script |
-
-**Example splits file (`data/splits/nanozymes.json`):**
 ```json
 {
   "train": ["paper1", "paper2", "paper3"],
@@ -421,97 +87,194 @@ python scripts/parse.py --config default.yaml
 }
 ```
 
-### Stage 4: Agent Optimization
+> ⚠️ **Important:** Document IDs must match `filename` in ground truth CSV (without `.pdf` extension).
 
-```bash
-python scripts/optimize.py --config default.yaml
-```
-
-| Input | Output |
-|-------|--------|
-| `data/ground_truth/nanozymes.csv` | `data/agents/nanozymes_v*.json` |
-| `data/splits/nanozymes.json` | |
-| `data/parsed/*.json` | |
-| `config/initial_instructions/*.txt` | |
-
-### Stage 5: Extraction
-
-```bash
-python scripts/extract.py --config default.yaml --agent data/agents/nanozymes_latest.json
-```
-
-| Input | Output |
-|-------|--------|
-| `data/agents/*.json` | `data/extractions/*.json` |
-| `data/parsed/*.json` | |
-
-### Stage 6: Evaluation (optional)
-
-Evaluation is performed manually or with custom scripts.
+> **Config:** `paths.splits_file`
 
 ---
 
-## Data Integrity Checks
+## Generated Files
 
-### Before Optimization
+### 4. Parsed JSON (`data/parsed/`)
 
-Ensure all documents in splits file exist:
+**Format:** JSON
+**Created by:** `parse.py`
 
-```python
-import json
-from pathlib import Path
+Structured document content.
 
-# Load splits
-splits_path = Path("data/splits/nanozymes.json")
-with open(splits_path) as f:
-    splits = json.load(f)
-
-# Load ground truth
-import pandas as pd
-df = pd.read_csv("data/ground_truth/nanozymes.csv")
-gt_docs = df["filename"].str.replace(".pdf", "").unique()
-
-# Check all documents exist
-for split_name, doc_ids in splits.items():
-    missing = set(doc_ids) - set(gt_docs)
-    if missing:
-        print(f"⚠ {split_name}: missing {missing}")
+```json
+{
+  "text_content": "...",
+  "metadata": {
+    "source_path": "...",
+    "filename": "paper1.pdf",
+    "page_count": 10,
+    "extra": {
+      "parser": "Docling",
+      "device": "cpu"
+    }
+  },
+  "tables": [],
+  "images": []
+}
 ```
 
-### Check Parsed Files
+**Structure:**
+- `text_content` — Extracted text (hybrid format with markdown tables)
+- `metadata` — Document metadata including source path, filename, page count, extra parser info
+- `tables` — List of extracted tables (HTML format, parser-dependent)
+- `images` — List of extracted image paths or descriptions (parser-dependent)
 
-```python
-from pathlib import Path
-import json
-
-parsed_dir = Path("data/parsed")
-splits_path = Path("data/splits/nanozymes.json")
-with open(splits_path) as f:
-    splits = json.load(f)
-
-all_docs = []
-for docs in splits.values():
-    all_docs.extend(docs)
-
-for doc_id in all_docs:
-    json_path = parsed_dir / f"{doc_id}.json"
-    if not json_path.exists():
-        print(f"⚠ Missing parsed file: {json_path}")
-```
+> **Config:** `paths.parsed_dir`
+> **Source:** `aee.domain.entities.ProcessedDocument`
 
 ---
 
-## Environment Variables for Paths
+### 5. Trained Agents (`data/agents/`)
 
-All paths can be overridden via environment variables. See [Configuration Guide](configuration.md#environment-variables) for the complete reference.
+**Format:** JSON + metadata JSON  
+**Created by:** `optimize.py`
 
-**Common path overrides:**
-```bash
-# Input data
-export PATHS__PDF_DIR="data/my_pdfs"
-export PATHS__GROUND_TRUTH_DIR="data/my_gt"
+Optimized extraction agent.
 
-# Output data
-export PATHS__AGENTS_DIR="data/my_agents"
-export PATHS__EXTRACTIONS_DIR="data/my_extractions"
 ```
+data/agents/
+├── nanozymes_v1_20260218.json       # Agent state
+└── nanozymes_v1_20260218.meta.json  # Metadata
+```
+
+**Metadata example:**
+```json
+{
+  "task_name": "nanozymes",
+  "created_at": "2026-02-18T17:58:09",
+  "model_version": "mistral-small3.1-24b-128k:latest",
+  "metrics": {"f1": 0.74},
+  "config_snapshot": {...},
+  "git_commit": "abc1234",
+  "description": "Optimized with 70 trials",
+  "initial_instruction_file": "config/initial_instructions/nanozymes_sota.txt",
+  "instruction_hash": "a1b2c3d4e5f6"
+}
+```
+
+**Fields:**
+- `task_name` — Task this agent was trained for
+- `created_at` — ISO timestamp of creation
+- `model_version` — LLM model used
+- `metrics` — Performance metrics (F1, precision, recall)
+- `config_snapshot` — Configuration used during training
+- `git_commit` — Git commit hash at creation (optional)
+- `description` — Human-readable description (optional)
+- `initial_instruction_file` — Path to initial instruction (optional)
+- `instruction_hash` — SHA256 hash (first 12 chars) of instruction (optional)
+
+> **Config:** `paths.agents_dir`
+> **Source:** `aee.infrastructure.storage.agents_fn.AgentMetadata`
+
+---
+
+### 6. Extraction Results (`data/extractions/`)
+
+**Format:** JSON
+**Created by:** `extract.py`
+
+Extracted data per document.
+
+```json
+{
+  "extraction": {
+    "experiments": [
+      {
+        "formula": "Fe3O4",
+        "activity": "peroxidase",
+        "length": 10.0,
+        "km_value": 0.05
+      }
+    ]
+  },
+  "source_metadata": {
+    "filename": "paper1.pdf",
+    "document_id": "paper1"
+  }
+}
+```
+
+**Structure:**
+- `extraction.experiments` — List of extracted experiments
+- `source_metadata` — Optional metadata from the source document
+
+> **Note:** The extraction loader supports multiple formats for compatibility:
+> - `{"extraction": {"experiments": [...]}}` — Standard format
+> - `{"experiments": [...]}` — Direct experiments list
+> - `{"extracted_data": {"experiments": [...]}}` — Alternative format
+> - `[...]` — Direct list of experiments
+>
+> See `aee.infrastructure.storage.extractions.ExtractionRepository._extract_experiments()` for details.
+
+> **Config:** `paths.extractions_dir`
+> **Source:** `aee.infrastructure.storage.extractions.ExtractionRepository.save()`
+
+---
+
+## Task Configuration
+
+### Task YAML (`src/aee/domain/tasks/{task_name}/task.yaml`)
+
+**Format:** YAML  
+**Created by:** User
+
+Defines extraction task.
+
+```yaml
+name: nanozymes
+description: Extract nanozyme experiments
+
+fields:
+  formula:
+    type: str
+    description: "Chemical formula"
+    required: true
+
+compare_fields:
+  - formula
+  - activity
+float_tolerance: 0.05
+
+instruction_file: config/initial_instructions/nanozymes_sota.txt
+```
+
+> **Guide:** [Adding Tasks](adding_tasks.md)
+
+---
+
+## Instruction Files
+
+### Initial Instructions (`config/initial_instructions/`)
+
+**Format:** TXT  
+**Created by:** User
+
+Base instructions for DSPy optimization.
+
+```
+config/initial_instructions/
+└── nanozymes_sota.txt
+```
+
+> **Referenced in:** `task.yaml` → `instruction_file`
+
+---
+
+## Quick Reference
+
+| File | Location | Created By | Required |
+|------|----------|------------|----------|
+| PDFs | `data/pdf/` | User | Yes (for parsing) |
+| Ground Truth | `data/ground_truth/` | User | Yes (for optimization) |
+| Splits | `data/splits/` | User | Yes (for optimization) |
+| Parsed JSON | `data/parsed/` | `parse.py` | No (auto-generated) |
+| Agent | `data/agents/` | `optimize.py` | No (auto-generated) |
+| Extractions | `data/extractions/` | `extract.py` | No (auto-generated) |
+| Task YAML | `src/aee/domain/tasks/` | User | Yes (for new tasks) |
+| Instructions | `config/initial_instructions/` | User | Yes (for optimization) |

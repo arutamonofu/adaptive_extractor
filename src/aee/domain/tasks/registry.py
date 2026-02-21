@@ -1,91 +1,45 @@
-"""Task registry for managing task plugins.
+"""Task registry for managing task configurations.
 
-The registry maintains a collection of registered tasks and provides
+The registry maintains a collection of registered task configs and provides
 type-safe access to task definitions with validation.
-
-Supports both classic TaskDefinition approach and new TaskConfig approach.
 """
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
-from aee.domain.tasks.base import TaskDefinition
 from aee.domain.tasks.config import TaskConfig
+from aee.domain.tasks.dynamic_models import create_all_models, create_row_converter
+from aee.domain.tasks.signature import create_signature
 from aee.shared.exceptions import TaskNotFoundError, TaskValidationError
 
 logger = logging.getLogger(__name__)
 
-# Type alias for task registration
-TaskType = Union[TaskDefinition, TaskConfig]
-
 
 class TaskRegistry:
-    """Central registry for task definitions.
+    """Central registry for task configurations.
 
     The registry provides a type-safe way to register and retrieve task
-    definitions. All tasks are validated upon registration.
-
-    Supports two approaches:
-    1. Classic: Register TaskDefinition instances (e.g., NanozymeTask)
-    2. Modern: Register TaskConfig from YAML or programmatically
+    configurations. All tasks are validated upon registration.
 
     Example:
         ```python
-        # Classic approach
         registry = TaskRegistry()
-        registry.register(NanozymeTask(initial_instruction="..."))
-
-        # Modern approach
         registry.register_from_yaml("tasks/nanozymes/task.yaml")
 
-        # Get a task
-        task = registry.get("nanozymes")
+        # Get a task config
+        config = registry.get_config("nanozymes")
 
         # List all tasks
-        tasks = registry.list_tasks()
+        tasks = registry.list_task_names()
         ```
     """
 
     def __init__(self) -> None:
         """Initialize empty task registry."""
-        self._tasks: Dict[str, TaskDefinition] = {}
         self._configs: Dict[str, TaskConfig] = {}
+        self._cache: Dict[str, dict] = {}  # Cache for generated components
         logger.debug("Task registry initialized")
-
-    def register(
-        self,
-        task: TaskDefinition,
-        validate: bool = True,
-    ) -> None:
-        """Register a TaskDefinition instance.
-
-        Args:
-            task: Task definition to register.
-            validate: Whether to validate the task before registration (default True).
-
-        Raises:
-            TaskValidationError: If validation fails.
-            ValueError: If task with same name already registered.
-        """
-        # Validate task if requested
-        if validate:
-            try:
-                task.validate()
-            except TaskValidationError as e:
-                logger.error(f"Task validation failed for '{task.name}': {e}")
-                raise
-
-        # Check for duplicate task names
-        if task.name in self._tasks or task.name in self._configs:
-            raise ValueError(
-                f"Task '{task.name}' is already registered. "
-                f"Cannot register duplicate tasks."
-            )
-
-        # Register task
-        self._tasks[task.name] = task
-        logger.info(f"Registered task: '{task.name}' - {task.description}")
 
     def register_config(
         self,
@@ -110,7 +64,7 @@ class TaskRegistry:
                 raise ValueError(f"TaskConfig validation failed: {error_msg}")
 
         # Check for duplicate task names
-        if config.name in self._tasks or config.name in self._configs:
+        if config.name in self._configs:
             raise ValueError(
                 f"Task '{config.name}' is already registered. "
                 f"Cannot register duplicate tasks."
@@ -147,7 +101,7 @@ class TaskRegistry:
         return config
 
     def unregister(self, task_name: str) -> None:
-        """Unregister a task definition.
+        """Unregister a task config.
 
         Args:
             task_name: Name of task to unregister.
@@ -155,41 +109,13 @@ class TaskRegistry:
         Raises:
             TaskNotFoundError: If task not found.
         """
-        if task_name in self._tasks:
-            del self._tasks[task_name]
-            logger.info(f"Unregistered task: '{task_name}'")
-        elif task_name in self._configs:
+        if task_name in self._configs:
             del self._configs[task_name]
+            if task_name in self._cache:
+                del self._cache[task_name]
             logger.info(f"Unregistered task config: '{task_name}'")
         else:
             raise TaskNotFoundError(task_name)
-
-    def get(self, task_name: str) -> TaskDefinition:
-        """Get a registered task definition.
-
-        For TaskConfig registrations, this will dynamically create
-        and return a TaskDefinition wrapper.
-
-        Args:
-            task_name: Name of the task to retrieve.
-
-        Returns:
-            Task definition.
-
-        Raises:
-            TaskNotFoundError: If task not found.
-        """
-        # Check classic tasks first
-        if task_name in self._tasks:
-            return self._tasks[task_name]
-
-        # Check configs and create wrapper
-        if task_name in self._configs:
-            return self._create_task_from_config(self._configs[task_name])
-
-        # Task not found
-        available = ", ".join(self.list_task_names())
-        raise TaskNotFoundError(task_name)
 
     def get_config(self, task_name: str) -> TaskConfig:
         """Get a registered TaskConfig.
@@ -208,6 +134,42 @@ class TaskRegistry:
 
         return self._configs[task_name]
 
+    def get_task(self, task_name: str) -> dict:
+        """Get complete task components (config, models, signature, converter).
+
+        Args:
+            task_name: Name of the task.
+
+        Returns:
+            Dictionary with keys: config, experiment_model, output_model, signature, row_converter
+
+        Raises:
+            TaskNotFoundError: If task not found.
+        """
+        if task_name not in self._configs:
+            raise TaskNotFoundError(task_name)
+
+        # Return from cache if available
+        if task_name in self._cache:
+            return self._cache[task_name]
+
+        # Generate components
+        config = self._configs[task_name]
+        experiment_model, output_model = create_all_models(config)
+        signature = create_signature(config, experiment_model, output_model)
+        row_converter = create_row_converter(config, experiment_model)
+
+        # Cache components
+        self._cache[task_name] = {
+            "config": config,
+            "experiment_model": experiment_model,
+            "output_model": output_model,
+            "signature": signature,
+            "row_converter": row_converter,
+        }
+
+        return self._cache[task_name]
+
     def has(self, task_name: str) -> bool:
         """Check if a task is registered.
 
@@ -217,30 +179,7 @@ class TaskRegistry:
         Returns:
             True if task is registered, False otherwise.
         """
-        return task_name in self._tasks or task_name in self._configs
-
-    def list_tasks(self) -> List[TaskDefinition]:
-        """List all registered tasks as TaskDefinition instances.
-
-        Returns:
-            List of task definitions in registration order.
-        """
-        # Return classic tasks
-        tasks = list(self._tasks.values())
-
-        # Add configs as TaskDefinition wrappers
-        for config in self._configs.values():
-            tasks.append(self._create_task_from_config(config))
-
-        return tasks
-
-    def list_configs(self) -> List[TaskConfig]:
-        """List all registered TaskConfigs.
-
-        Returns:
-            List of TaskConfig instances.
-        """
-        return list(self._configs.values())
+        return task_name in self._configs
 
     def list_task_names(self) -> List[str]:
         """List all registered task names.
@@ -248,7 +187,7 @@ class TaskRegistry:
         Returns:
             List of task names in registration order.
         """
-        return list(self._tasks.keys()) + list(self._configs.keys())
+        return list(self._configs.keys())
 
     def count(self) -> int:
         """Count registered tasks.
@@ -256,58 +195,27 @@ class TaskRegistry:
         Returns:
             Number of registered tasks.
         """
-        return len(self._tasks) + len(self._configs)
+        return len(self._configs)
 
     def clear(self) -> None:
-        """Clear all registered tasks and configs.
+        """Clear all registered tasks and cache.
 
         Warning:
             This removes all tasks from the registry. Use with caution.
         """
-        task_count = len(self._tasks)
         config_count = len(self._configs)
-        self._tasks.clear()
         self._configs.clear()
-        logger.warning(
-            f"Cleared task registry ({task_count} tasks, {config_count} configs removed)"
-        )
+        self._cache.clear()
+        logger.warning(f"Cleared task registry ({config_count} configs removed)")
 
-    def get_task_info(self, task_name: str) -> Dict[str, Any]:
-        """Get information about a registered task.
-
-        Args:
-            task_name: Name of the task.
-
-        Returns:
-            Dictionary with task information.
-
-        Raises:
-            TaskNotFoundError: If task not found.
-        """
-        if task_name in self._configs:
-            return self._configs[task_name].to_dict()
-
-        task = self.get(task_name)
-        return task.to_dict()
-
-    def validate_all(self) -> Dict[str, Optional[Union[TaskValidationError, ValueError]]]:
+    def validate_all(self) -> Dict[str, Optional[ValueError]]:
         """Validate all registered tasks.
 
         Returns:
             Dictionary mapping task names to validation errors (None if valid).
         """
-        results: Dict[str, Optional[Union[TaskValidationError, ValueError]]] = {}
+        results: Dict[str, Optional[ValueError]] = {}
 
-        # Validate classic tasks
-        for task_name, task in self._tasks.items():
-            try:
-                task.validate()
-                results[task_name] = None
-            except TaskValidationError as e:
-                results[task_name] = e
-                logger.error(f"Validation failed for task '{task_name}': {e}")
-
-        # Validate configs
         for config_name, config in self._configs.items():
             errors = config.validate()
             if errors:
@@ -321,39 +229,13 @@ class TaskRegistry:
 
         return results
 
-    def _create_task_from_config(self, config: TaskConfig) -> TaskDefinition:
-        """Create a TaskDefinition wrapper from TaskConfig.
-
-        This allows TaskConfig to be used interchangeably with TaskDefinition.
-
-        Args:
-            config: TaskConfig to wrap.
-
-        Returns:
-            TaskDefinition instance.
-        """
-        from .dynamic_wrapper import ConfigBackedTask
-
-        return ConfigBackedTask(config)
-
     def __contains__(self, task_name: str) -> bool:
-        """Support 'in' operator for checking task registration.
-
-        Args:
-            task_name: Name of the task to check.
-
-        Returns:
-            True if task is registered, False otherwise.
-        """
-        return task_name in self._tasks or task_name in self._configs
+        """Support 'in' operator for checking task registration."""
+        return task_name in self._configs
 
     def __len__(self) -> int:
-        """Support len() for counting tasks.
-
-        Returns:
-            Number of registered tasks.
-        """
-        return len(self._tasks) + len(self._configs)
+        """Support len() for counting tasks."""
+        return len(self._configs)
 
     def __repr__(self) -> str:
         """String representation of registry."""
@@ -379,46 +261,48 @@ def get_global_registry() -> TaskRegistry:
     return _global_registry
 
 
-def register_task(
-    task: TaskDefinition | TaskConfig,
+def register_config(
+    config: TaskConfig,
     validate: bool = True,
 ) -> None:
-    """Register a task in the global registry.
-
-    Convenience function for registering tasks in the global registry.
-    Supports both TaskDefinition and TaskConfig.
+    """Register a TaskConfig in the global registry.
 
     Args:
-        task: Task definition or config to register.
-        validate: Whether to validate the task before registration.
+        config: Task configuration to register.
+        validate: Whether to validate before registration.
     """
     registry = get_global_registry()
-
-    if isinstance(task, TaskConfig):
-        registry.register_config(task, validate=validate)
-    else:
-        registry.register(task, validate=validate)
+    registry.register_config(config, validate=validate)
 
 
-def get_task(task_name: str) -> TaskDefinition:
-    """Get a task from the global registry.
-
-    Convenience function for retrieving tasks from the global registry.
+def get_config(task_name: str) -> TaskConfig:
+    """Get a TaskConfig from the global registry.
 
     Args:
-        task_name: Name of the task to retrieve.
+        task_name: Name of the task.
 
     Returns:
-        Task definition.
+        TaskConfig instance.
     """
     registry = get_global_registry()
-    return registry.get(task_name)
+    return registry.get_config(task_name)
+
+
+def get_task(task_name: str) -> dict:
+    """Get complete task components from the global registry.
+
+    Args:
+        task_name: Name of the task.
+
+    Returns:
+        Dictionary with config, experiment_model, output_model, signature, row_converter.
+    """
+    registry = get_global_registry()
+    return registry.get_task(task_name)
 
 
 def load_and_register_task(yaml_path: str | Path) -> TaskConfig:
     """Load a task from YAML and register it.
-
-    Convenience function for loading and registering YAML-based tasks.
 
     Args:
         yaml_path: Path to YAML manifest file.

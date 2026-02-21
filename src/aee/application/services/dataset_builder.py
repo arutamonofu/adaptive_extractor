@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Set
 import dspy
 
 from aee.domain.entities import ProcessedDocument
-from aee.domain.tasks import TaskDefinition
+from aee.domain.tasks import TaskConfig
 from aee.infrastructure.storage import DocumentRepository, GroundTruthRepository, DataSplitRepository
 from aee.shared.exceptions import DataValidationError, UseCaseExecutionError
 
@@ -71,7 +71,7 @@ class DatasetBuilder:
 
     def build_from_split(
         self,
-        task: TaskDefinition,
+        task: TaskConfig,
         gt_path: Path,
         split_path: Path,
         split_name: str,
@@ -120,7 +120,7 @@ class DatasetBuilder:
 
     def build_from_ids(
         self,
-        task: TaskDefinition,
+        task: TaskConfig,
         document_ids: List[str],
         gt_data: Dict[str, List[Any]],
         limit: Optional[int] = None,
@@ -192,7 +192,7 @@ class DatasetBuilder:
 
     def _build_examples(
         self,
-        task: TaskDefinition,
+        task: TaskConfig,
         document_ids: List[str],
         gt_data: Dict[str, List[Any]],
     ) -> List[dspy.Example]:
@@ -253,7 +253,7 @@ class DatasetBuilder:
 
     def _validate_inputs(
         self,
-        task: TaskDefinition,
+        task: TaskConfig,
         document_ids: List[str],
         gt_data: Dict[str, List[Any]],
         limit: Optional[int],

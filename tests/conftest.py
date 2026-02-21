@@ -9,13 +9,7 @@ from typing import Any, Dict, List
 import pandas as pd
 import pytest
 
-from aee.domain.tasks.base import TaskDefinition
-from aee.domain.tasks.nanozymes import (
-    NanozymeExperiment,
-    NanozymeExtractionOutput,
-    row_to_nanozyme,
-)
-from aee.domain.tasks.nanozymes.signature import create_nanozyme_signature
+from aee.domain.tasks import TaskConfig, load_task_from_yaml, get_task, get_global_registry
 
 
 # ============================================================================
@@ -30,53 +24,21 @@ TEST_DATA_DIR = Path(__file__).parent / "data"
 # ============================================================================
 
 @pytest.fixture
-def nanozyme_initial_instruction() -> str:
-    """Load initial instruction for nanozyme task.
-    
+def nanozyme_task():
+    """Get nanozyme task components.
+
     Returns:
-        Initial instruction text.
+        Dictionary with task components (config, experiment_model, output_model, signature, row_converter).
     """
-    instruction_path = Path("config/initial_instructions/nanozymes_sota.txt")
-    if instruction_path.exists():
-        return instruction_path.read_text(encoding="utf-8")
+    from aee.domain.tasks import load_task_from_yaml, get_task, register_config
     
-    # Fallback instruction if file doesn't exist
-    return """Extract nanozyme experiments from scientific articles.
+    # Load and register task if not already registered
+    registry = get_global_registry()
+    if not registry.has("nanozymes"):
+        yaml_path = Path("src/aee/domain/tasks/nanozymes/task.yaml")
+        register_config(load_task_from_yaml(yaml_path))
     
-For each experiment, identify:
-- Chemical formula
-- Catalytic activity type
-- Kinetic parameters (Km, Vmax)
-- Reaction conditions (pH, temperature)
-- Material properties (size, surface, crystal structure)
-"""
-
-
-@pytest.fixture
-def nanozyme_task(nanozyme_initial_instruction: str) -> TaskDefinition:
-    """Create a NanozymeTask instance.
-    
-    Args:
-        nanozyme_initial_instruction: Initial instruction text.
-        
-    Returns:
-        Configured NanozymeTask instance.
-    """
-    from aee.domain.tasks.nanozymes import NanozymeTask
-    return NanozymeTask(initial_instruction=nanozyme_initial_instruction)
-
-
-@pytest.fixture
-def nanozyme_signature_class(nanozyme_initial_instruction: str):
-    """Create DSPy signature class for nanozymes.
-    
-    Args:
-        nanozyme_initial_instruction: Initial instruction text.
-        
-    Returns:
-        DSPy Signature class.
-    """
-    return create_nanozyme_signature(nanozyme_initial_instruction)
+    return get_task("nanozymes")
 
 
 @pytest.fixture
@@ -141,14 +103,18 @@ def sample_gt_dataframe(sample_gt_csv: Path) -> pd.DataFrame:
 
 
 @pytest.fixture
-def nanozyme_experiments() -> List[NanozymeExperiment]:
+def nanozyme_experiments(nanozyme_task) -> List:
     """Create a list of sample nanozyme experiments.
-    
+
+    Args:
+        nanozyme_task: Task fixture providing experiment_model.
+
     Returns:
-        List of NanozymeExperiment instances.
+        List of experiment instances.
     """
+    experiment_model = nanozyme_task["experiment_model"]
     return [
-        NanozymeExperiment(
+        experiment_model(
             formula="Fe3O4",
             activity="peroxidase",
             length=10.0,
@@ -158,7 +124,7 @@ def nanozyme_experiments() -> List[NanozymeExperiment]:
             temperature=25.0,
             surface="naked",
         ),
-        NanozymeExperiment(
+        experiment_model(
             formula="CuO",
             activity="oxidase",
             length=20.0,
@@ -172,16 +138,18 @@ def nanozyme_experiments() -> List[NanozymeExperiment]:
 
 
 @pytest.fixture
-def nanozyme_output(nanozyme_experiments: List[NanozymeExperiment]) -> NanozymeExtractionOutput:
+def nanozyme_output(nanozyme_task, nanozyme_experiments):
     """Create a sample extraction output.
-    
+
     Args:
+        nanozyme_task: Task fixture providing output_model.
         nanozyme_experiments: List of experiments.
-        
+
     Returns:
-        NanozymeExtractionOutput instance.
+        Extraction output instance.
     """
-    return NanozymeExtractionOutput(experiments=nanozyme_experiments)
+    output_model = nanozyme_task["output_model"]
+    return output_model(experiments=nanozyme_experiments)
 
 
 # ============================================================================
@@ -372,19 +340,62 @@ def cleanup_temp_files():
 # ============================================================================
 
 @pytest.fixture
-def matched_pairs_data():
+def matched_pairs_data(nanozyme_task):
     """Create sample data for testing matcher alignment.
-    
+
+    Args:
+        nanozyme_task: Task fixture providing experiment_model.
+
     Returns:
         Dictionary with test data for matching.
     """
+    experiment_model = nanozyme_task["experiment_model"]
     return {
         "preds": [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase", length=10.0),
-            NanozymeExperiment(formula="CuO", activity="oxidase", length=20.0),
+            experiment_model(formula="Fe3O4", activity="peroxidase", length=10.0),
+            experiment_model(formula="CuO", activity="oxidase", length=20.0),
         ],
         "gts": [
-            NanozymeExperiment(formula="Fe3O4", activity="peroxidase", length=10.0),
-            NanozymeExperiment(formula="ZnO", activity="catalase", length=15.0),
+            experiment_model(formula="Fe3O4", activity="peroxidase", length=10.0),
+            experiment_model(formula="ZnO", activity="catalase", length=15.0),
         ],
     }
+
+
+@pytest.fixture
+def experiment_model(nanozyme_task):
+    """Get experiment model from nanozyme task.
+
+    Args:
+        nanozyme_task: Task fixture.
+
+    Returns:
+        Experiment model class.
+    """
+    return nanozyme_task["experiment_model"]
+
+
+@pytest.fixture
+def output_model(nanozyme_task):
+    """Get output model from nanozyme task.
+
+    Args:
+        nanozyme_task: Task fixture.
+
+    Returns:
+        Output model class.
+    """
+    return nanozyme_task["output_model"]
+
+
+@pytest.fixture
+def row_converter(nanozyme_task):
+    """Get row converter from nanozyme task.
+
+    Args:
+        nanozyme_task: Task fixture.
+
+    Returns:
+        Row converter function.
+    """
+    return nanozyme_task["row_converter"]

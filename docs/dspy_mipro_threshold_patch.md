@@ -11,43 +11,28 @@ Bootstrapped 2 full traces after 2 examples for up to 1 rounds, amounting to 2 a
 
 ## Root Cause
 
-In the file `dspy/teleprompt/utils.py`, the function `create_n_fewshot_demo_sets()`, when creating bootstrap examples for `seed == -1` (unshuffled few-shot), the `metric_threshold` parameter was **not being passed** to `BootstrapFewShot`:
-
-```python
-# BEFORE (incorrect)
-elif seed == -1:
-    # unshuffled few-shot
-    program = BootstrapFewShot(
-        metric=metric,
-        max_errors=max_errors,
-        max_bootstrapped_demos=max_bootstrapped_demos,
-        max_labeled_demos=max_labeled_demos,
-        teacher_settings=teacher_settings,
-        max_rounds=max_rounds,
-        # ← metric_threshold was NOT passed!
-    )
-```
-
-This meant that for one of the candidate demonstration sets (specifically the unshuffled few-shot), the metric threshold was being ignored.
+In `dspy/teleprompt/utils.py`, the function `create_n_fewshot_demo_sets()` was not passing `metric_threshold` to `BootstrapFewShot` for the unshuffled few-shot case (`seed == -1`).
 
 ## Solution
 
-Added `metric_threshold` parameter passing to `BootstrapFewShot` for all cases:
+Added `metric_threshold` parameter:
 
 ```python
+# BEFORE (incorrect)
+teleprompter = BootstrapFewShot(
+    metric=metric,
+    max_errors=max_errors,
+    max_bootstrapped_demos=max_bootstrapped_demos,
+    # metric_threshold was NOT passed!
+)
+
 # AFTER (correct)
-elif seed == -1:
-    # unshuffled few-shot
-    # PATCHED: Added metric_threshold parameter (was missing, causing threshold to be ignored)
-    teleprompter = BootstrapFewShot(
-        metric=metric,
-        max_errors=max_errors,
-        metric_threshold=metric_threshold,  # ← ADDED
-        max_bootstrapped_demos=max_bootstrapped_demos,
-        max_labeled_demos=max_labeled_demos,
-        teacher_settings=teacher_settings,
-        max_rounds=max_rounds,
-    )
+teleprompter = BootstrapFewShot(
+    metric=metric,
+    max_errors=max_errors,
+    metric_threshold=metric_threshold,  # ← ADDED
+    max_bootstrapped_demos=max_bootstrapped_demos,
+)
 ```
 
 ## Applying the Patch
@@ -58,38 +43,31 @@ python scripts/patch_dspy_mipro_threshold.py
 
 ## Verification
 
-After applying the patch, verify the file has been modified:
-
+**Option 1: Check patched file directly**
 ```bash
 grep -A 10 "elif seed == -1:" $(python -c "import dspy; print(dspy.__file__.replace('__init__.py', 'teleprompt/utils.py'))")
 ```
 
-You should see:
+**Option 2: Verify via patch script** (recommended)
+```bash
+# The patch script checks if already patched
+python scripts/patch_dspy_mipro_threshold.py
+# Output: "✓ File already patched!" if successful
+```
+
+Expected output (Option 1):
 ```python
 elif seed == -1:
-    # unshuffled few-shot
-    # PATCHED: Added metric_threshold parameter (was missing, causing threshold to be ignored)
     teleprompter = BootstrapFewShot(
         metric=metric,
         max_errors=max_errors,
-        metric_threshold=metric_threshold,
+        metric_threshold=metric_threshold,  # ← Should be present
         ...
 ```
 
-## Impact on Optimization
+## Impact
 
-After applying the patch:
-- Examples with metrics below `metric_threshold` will be correctly filtered out in **all** bootstrap demonstration sets
-- The number of "full traces" should decrease (only examples with metric >= threshold)
-- Optimized agent quality may improve as only high-quality demonstrations will be used
-
-## Notes
-
-- The patch is applied to the installed DSPy library in the current environment
-- If you reinstall DSPy, you'll need to reapply the patch
-- Recommended to add patch application to your environment setup script
-
-## Related Issues
-
-- DSPy issue: (link to GitHub issue if exists)
-- Internal bug tracker: (if applicable)
+After patching:
+- Only examples meeting `metric_threshold` are selected
+- Optimization quality improves
+- Fewer wasted trials on poor demonstrations

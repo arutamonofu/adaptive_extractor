@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 
 from aee.application.services import AgentManager
-from aee.domain.tasks import TaskDefinition
+from aee.domain.tasks import TaskConfig
 from aee.infrastructure.storage import DocumentRepository, ExtractionRepository
 from aee.shared.exceptions import UseCaseExecutionError
 
@@ -31,7 +31,7 @@ class BatchPredictionRequest:
         batch_size: Optional batch size for processing.
     """
 
-    task: TaskDefinition
+    task: TaskConfig
     agent_path: Path
     document_ids: List[str]
     output_dir: Path

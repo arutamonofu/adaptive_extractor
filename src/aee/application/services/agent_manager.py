@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
 
-from aee.domain.tasks import TaskDefinition
+from aee.domain.tasks import TaskConfig
 from aee.infrastructure.storage import AgentMetadata, AgentRepository
 from aee.shared.exceptions import AgentNotFoundError, UseCaseExecutionError
 
@@ -76,7 +76,7 @@ class AgentManager:
     def save_agent(
         self,
         agent: Union[SerializableAgent, SaveableAgent, Dict[str, Any]],
-        task: TaskDefinition,
+        task: TaskConfig,
         metrics: Dict[str, float],
         config: Dict[str, Any],
         model_version: str = "unknown",
@@ -89,7 +89,7 @@ class AgentManager:
 
         Args:
             agent: The compiled agent to save. Must implement dump_state() or save() method.
-            task: Task definition the agent was trained for.
+            task: Task config the agent was trained for.
             metrics: Performance metrics (e.g., {"f1": 0.85}).
             config: Configuration used for training.
             model_version: LLM model version used.

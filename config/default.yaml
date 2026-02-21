@@ -93,29 +93,28 @@ optimization:
 task:
   name: "nanozymes"
   initial_instruction_file: "config/initial_instructions/nanozymes_sota.txt"
-  evaluation:
-    float_tolerance: 0.05
-    compare_fields:
-      - "formula"
-      - "activity"
-      - "reaction_type"
-      - "ph"
-      - "temperature"
-      - "surface"
-      - "syngony"
-      - "length"
-      - "width"
-      - "depth"
-      - "km_value"
-      - "vmax_value"
-      - "c_min"
-      - "c_max"
-      - "c_const"
-      - "ccat_value"
-      - "km_unit"
-      - "vmax_unit"
-      - "c_const_unit"
-      - "ccat_unit"
+  compare_fields:
+    - "formula"
+    - "activity"
+    - "reaction_type"
+    - "ph"
+    - "temperature"
+    - "surface"
+    - "syngony"
+    - "length"
+    - "width"
+    - "depth"
+    - "km_value"
+    - "vmax_value"
+    - "c_min"
+    - "c_max"
+    - "c_const"
+    - "ccat_value"
+    - "km_unit"
+    - "vmax_unit"
+    - "c_const_unit"
+    - "ccat_unit"
+  float_tolerance: 0.05
 
 extraction:
   enable_cache: false
