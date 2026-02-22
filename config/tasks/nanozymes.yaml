@@ -3,47 +3,28 @@
 
 name: nanozymes
 
-version: 1.0.0
-tags:
-  - chemistry
-  - nanozymes
-  - catalysis
-
 # Fields to extract from documents
 fields:
   formula:
     type: str
     description: "Chemical formula (e.g., Fe3O4, Au, CuO)"
     required: true
-    alt_names:
-      - chemical_formula
-      - name
 
   surface:
     type: str
     description: "Surface chemistry (naked, PEG, PVP, citrate), Polymer (oleic acid, BSA), or Surfactant (l-ascorbic acid, sodium citrate, etc)"
     required: false
-    alt_names:
-      - surface_chemistry
-      - coating
 
   syngony:
     type: str
     description: "Crystal system: cubic, hexagonal, tetragonal, monoclinic, orthorhombic, trigonal, amorphous, triclinic"
     required: false
-    alt_names:
-      - crystal_system
-      - crystal_structure
 
   length:
     type: float
     description: "Length or size/diameter in nm"
     required: false
     min_value: 0
-    alt_names:
-      - size
-      - diameter
-      - particle_size
 
   width:
     type: float
@@ -69,27 +50,17 @@ fields:
       - superoxide_dismutase
       - glucose oxidase
       - other
-    alt_names:
-      - catalytic_activity
-      - enzyme_type
 
   reaction_type:
     type: str
     description: "Format: 'Substrate + Co-substrate'. Tracks: TMB+H2O2 (TMB varies), H2O2+TMB (H2O2 varies)"
     required: false
-    alt_names:
-      - reaction
-      - substrate_type
 
   km_value:
     type: float
     description: "Michaelis constant Km (Mantissa)"
     required: false
     min_value: 0
-    alt_names:
-      - km
-      - km_val
-      - michaelis_constant
 
   km_unit:
     type: str
@@ -101,9 +72,6 @@ fields:
     description: "Max reaction rate Vmax (Mantissa)"
     required: false
     min_value: 0
-    alt_names:
-      - vmax
-      - vmax_val
 
   vmax_unit:
     type: str
@@ -116,61 +84,40 @@ fields:
     required: false
     min_value: 0
     max_value: 14
-    alt_names:
-      - pH
 
   temperature:
     type: float
     description: "Temperature in °C"
     required: false
-    alt_names:
-      - temp
-      - temperature_c
 
   c_min:
     type: float
     description: "Min concentration of variable substrate (mM)"
     required: false
     min_value: 0
-    alt_names:
-      - cmin
-      - min_concentration
 
   c_max:
     type: float
     description: "Max concentration of variable substrate (mM)"
     required: false
     min_value: 0
-    alt_names:
-      - cmax
-      - max_concentration
 
   c_const:
     type: float
     description: "Concentration of fixed co-substrate (mM)"
     required: false
     min_value: 0
-    alt_names:
-      - cconst
-      - c_cons
-      - constant_concentration
 
   c_const_unit:
     type: str
     description: "Unit for c_const"
     required: false
-    alt_names:
-      - ccons_unit
 
   ccat_value:
     type: float
     description: "Concentration of the nanozyme/catalyst"
     required: false
     min_value: 0
-    alt_names:
-      - ccat
-      - catalyst_concentration
-      - nanozyme_concentration
 
   ccat_unit:
     type: str
@@ -265,13 +212,3 @@ row_converter:
     - ccat
   ccat_unit:
     - ccat_unit
-
-# Model names (optional, defaults will be used if not specified)
-experiment_model_name: NanozymeExperiment
-output_model_name: NanozymeExtractionOutput
-
-# Additional metadata
-metadata:
-  author: AutoEvoExtractor Team
-  created: 2026-02-19
-  license: MIT

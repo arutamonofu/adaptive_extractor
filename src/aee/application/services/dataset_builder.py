@@ -95,7 +95,7 @@ class DatasetBuilder:
         """
         try:
             # Load ground truth
-            gt_data = self.gt_repo.load(gt_path, task.row_converter)
+            gt_data = self.gt_repo.load(gt_path, task.row_converter)  # type: ignore[arg-type]
 
             # Load split
             allowed_ids = list(self.split_repo.load_split(
@@ -229,7 +229,7 @@ class DatasetBuilder:
                 # Create DSPy example
                 example = dspy.Example(
                     document_text=doc.text_content,
-                    extracted_data=task.output_model(experiments=gt_data[doc_id])
+                    extracted_data=task.output_model(experiments=gt_data[doc_id])  # type: ignore[attr-defined]
                 ).with_inputs("document_text")
 
                 dataset.append(example)

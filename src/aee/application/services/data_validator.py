@@ -122,7 +122,7 @@ class DataValidator:
 
         try:
             # Load ground truth
-            gt_data = self.gt_repo.load(gt_path, task.row_converter)
+            gt_data = self.gt_repo.load(gt_path, task.row_converter)  # type: ignore[arg-type]
             gt_doc_ids = set(gt_data.keys())
             result.stats["ground_truth_docs"] = len(gt_doc_ids)
 
@@ -225,7 +225,7 @@ class DataValidator:
         result = ValidationResult(success=True)
 
         try:
-            gt_data = self.gt_repo.load(gt_path, task.row_converter)
+            gt_data = self.gt_repo.load(gt_path, task.row_converter)  # type: ignore[arg-type]
 
             # Check total count
             total_docs = len(gt_data)

@@ -11,7 +11,6 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 from aee.infrastructure.storage.agents import AgentMetadata, AgentRepository
@@ -23,7 +22,6 @@ from aee.shared.exceptions import (
     DataValidationError,
     InvalidDataFormatError,
 )
-from aee.domain.tasks import load_task_from_yaml, get_task
 
 
 class TestAgentRepository:
@@ -129,7 +127,7 @@ class TestAgentRepository:
         )
         
         # Save two agents
-        path1 = repo.save(sample_agent_dict, "nanozymes", metadata)
+        _ = repo.save(sample_agent_dict, "nanozymes", metadata)
 
         # Modify metadata for second agent
         import time

@@ -78,7 +78,7 @@ def create_signature(
         document_text: str = dspy.InputField(
             desc="Full text content of the scientific article or document."
         )
-        extracted_data: output_model = dspy.OutputField(
+        extracted_data: output_model = dspy.OutputField(  # type: ignore[valid-type]
             desc=f"Extracted {task_config.name} experiments as structured data."
         )
 

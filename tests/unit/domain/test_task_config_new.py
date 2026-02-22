@@ -10,7 +10,6 @@ Tests cover:
 import pytest
 
 from aee.domain.tasks.config import FieldSpec, RowConverterConfig, TaskConfig
-from aee.domain.entities import Experiment
 
 
 class TestFieldSpec:
@@ -197,21 +196,17 @@ class TestTaskConfig:
         # Create temporary instruction file
         instruction_file = tmp_path / "test_instruction.txt"
         instruction_file.write_text("Test instruction")
-        
+
         config = TaskConfig(
             name="test_task",
             experiment_fields=sample_fields,
             compare_fields=["formula", "activity"],
             float_tolerance=0.10,
             initial_instruction_file=str(instruction_file),
-            tags=["test", "chemistry"],
-            version="2.0.0",
         )
 
         assert config.float_tolerance == 0.10
         assert config.initial_instruction_file == str(instruction_file)
-        assert config.tags == ["test", "chemistry"]
-        assert config.version == "2.0.0"
 
     def test_empty_name_raises(self, sample_fields, tmp_path):
         """Test that empty name raises error."""

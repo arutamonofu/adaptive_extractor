@@ -7,8 +7,6 @@ Tests cover:
 - Backward compatibility with class-based API
 """
 
-import json
-from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -118,7 +116,7 @@ class TestSaveLoadAgent:
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
 
-        path1 = save_agent(
+        _ = save_agent(
             agent={"lm": {"model": "test1"}},
             task_name="nanozymes",
             agents_dir=agents_dir,
@@ -267,7 +265,7 @@ class TestLoadSplits:
         """Test saving splits."""
         output_path = tmp_path / "output.json"
 
-        splits = {
+        splits: dict[str, set[str] | list[str]] = {
             "train": {"doc1", "doc2"},
             "test": {"doc3"},
         }
@@ -340,7 +338,7 @@ class TestBackwardCompatibility:
             config_snapshot={},
         )
 
-        path = repo.save(agent, "test", metadata)
+        path = repo.save(agent, "test", metadata)  # type: ignore[arg-type]
         loaded_agent, loaded_meta = repo.load(path)
 
         assert loaded_agent["lm"]["model"] == "test"

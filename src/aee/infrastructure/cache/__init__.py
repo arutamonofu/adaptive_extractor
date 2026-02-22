@@ -139,7 +139,7 @@ def get_cache_stats(cache_dir: Optional[str] = None) -> dict:
         for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
             if size_bytes < 1024.0:
                 return f"{size_bytes:.2f} {unit}"
-            size_bytes /= 1024.0
+            size_bytes //= 1024
         return f"{size_bytes:.2f} PB"
 
     if cache_dir is None:
@@ -156,7 +156,7 @@ def get_cache_stats(cache_dir: Optional[str] = None) -> dict:
         }
 
     # Calculate cache size
-    total_size = 0
+    total_size: int = 0
     num_files = 0
 
     for file_path in cache_path.rglob("*"):

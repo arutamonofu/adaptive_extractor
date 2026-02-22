@@ -27,7 +27,6 @@ class FieldSpec:
         min_value: Minimum value for numeric fields
         max_value: Maximum value for numeric fields
         pattern: Regex pattern for string fields
-        alt_names: Alternative names for the field (for CSV mapping)
     """
 
     type: Union[Type[str], Type[int], Type[float], Type]
@@ -38,7 +37,6 @@ class FieldSpec:
     min_value: Optional[float] = None
     max_value: Optional[float] = None
     pattern: Optional[str] = None
-    alt_names: List[str] = field(default_factory=list)
 
     def __post_init__(self):
         """Validate field specification after initialization."""
@@ -58,7 +56,7 @@ class FieldSpec:
             # Optional fields without default should have None as default
             self.default = None
 
-    def to_pydantic_field(self) -> PydanticField:
+    def to_pydantic_field(self) -> "PydanticField":  # type: ignore[valid-type]
         """Convert FieldSpec to Pydantic Field.
 
         Returns:
@@ -122,14 +120,9 @@ class TaskConfig:
         experiment_fields: Dictionary of field specifications
         compare_fields: List of field names to compare during evaluation
         float_tolerance: Tolerance for float comparisons (0.0 to 1.0)
-        initial_instruction_file: Path to instruction file for DSPy signature (from config/default.yaml)
+        initial_instruction_file: Path to instruction file for DSPy signature (relative to project root)
         row_converter: Configuration for CSV row conversion
-        output_model_name: Name for the generated output model class
-        experiment_model_name: Name for the generated experiment model class
         base_class: Base class for experiment model (e.g., Experiment)
-        tags: Optional tags for categorizing tasks
-        version: Task configuration version
-        metadata: Additional metadata
     """
 
     name: str
@@ -138,12 +131,7 @@ class TaskConfig:
     float_tolerance: float
     initial_instruction_file: Optional[str] = None
     row_converter: RowConverterConfig = field(default_factory=RowConverterConfig)
-    output_model_name: str = "ExtractionOutput"
-    experiment_model_name: str = "Experiment"
     base_class: Optional[Type[BaseModel]] = None
-    tags: List[str] = field(default_factory=list)
-    version: str = "1.0.0"
-    metadata: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """Validate task configuration after initialization."""
@@ -193,7 +181,7 @@ class TaskConfig:
         if not instruction_path.exists():
             raise FileNotFoundError(
                 f"Instruction file not found: {self.initial_instruction_file}. "
-                "Check 'task.initial_instruction_file' in config/default.yaml"
+                "Check 'task.initial_instruction_file' in system config and ensure path is relative to project root"
             )
         return instruction_path.read_text(encoding="utf-8")
 

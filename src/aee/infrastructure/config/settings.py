@@ -138,13 +138,23 @@ class OllamaConfig(BaseModel):
 class OllamaStudentConfig(OllamaConfig):
     """Ollama configuration for student model with dedicated env var."""
     # URL is overridden by load() method from OLLAMA_STUDENT_BASE_URL env var
-    pass
+    # Provide defaults for required parent fields
+    num_ctx: int = 2048
+    num_predict: int = 512
+    repeat_penalty: float = 1.1
+    repeat_last_n: int = 64
+    stream: bool = False
 
 
 class OllamaTeacherConfig(OllamaConfig):
     """Ollama configuration for teacher model with dedicated env var."""
     # URL is overridden by load() method from OLLAMA_TEACHER_BASE_URL env var
-    pass
+    # Provide defaults for required parent fields
+    num_ctx: int = 2048
+    num_predict: int = 512
+    repeat_penalty: float = 1.1
+    repeat_last_n: int = 64
+    stream: bool = False
 
 
 class NonOllamaConfig(BaseModel):
@@ -228,8 +238,8 @@ class LLMInstanceConfig(BaseModel):
         description="Enable LLM response caching"
     )
 
-    ollama: OllamaConfig = Field(default_factory=OllamaConfig)
-    non_ollama: NonOllamaConfig = Field(default_factory=NonOllamaConfig)
+    ollama: OllamaConfig = Field(default_factory=OllamaConfig)  # type: ignore[arg-type]
+    non_ollama: NonOllamaConfig = Field(default_factory=NonOllamaConfig)  # type: ignore[arg-type]
 
     @model_validator(mode="after")
     def validate_non_ollama_api_key(self) -> "LLMInstanceConfig":
@@ -247,11 +257,31 @@ class LLMConfig(BaseModel):
     """Configuration for LLM instances."""
     student: LLMInstanceConfig = Field(
         default_factory=lambda: LLMInstanceConfig(
+            use_ollama=True,
+            model="llama3",
+            timeout=120,
+            max_retries=3,
+            temperature=0.7,
+            rate_limit_delay=0.0,
+            top_p=0.9,
+            repeat_penalty=1.1,
+            repeat_last_n=64,
+            enable_cache=True,
             ollama=OllamaStudentConfig()
         )
     )
     teacher: LLMInstanceConfig = Field(
         default_factory=lambda: LLMInstanceConfig(
+            use_ollama=True,
+            model="llama3",
+            timeout=120,
+            max_retries=3,
+            temperature=0.7,
+            rate_limit_delay=0.0,
+            top_p=0.9,
+            repeat_penalty=1.1,
+            repeat_last_n=64,
+            enable_cache=True,
             ollama=OllamaTeacherConfig()
         )
     )
@@ -260,23 +290,23 @@ class LLMConfig(BaseModel):
 class DoclingConfig(BaseModel):
     """Docling parser configuration."""
     device: Literal["cpu", "cuda", "mps"] = Field(
-        ...,
+        default="cpu",
         description="Device to run Docling on: 'cpu', 'cuda', or 'mps'"
     )
     num_threads: int = Field(
-        ...,
+        default=4,
         description="Number of threads for Docling processing"
     )
     do_ocr: bool = Field(
-        ...,
+        default=True,
         description="Enable OCR processing"
     )
     do_table_structure: bool = Field(
-        ...,
+        default=True,
         description="Enable table structure detection"
     )
     ocr_backend: Literal["onnxruntime", "torch", "openvino", "paddlepaddle"] = Field(
-        ...,
+        default="onnxruntime",
         description="OCR backend to use"
     )
 
@@ -284,7 +314,7 @@ class DoclingConfig(BaseModel):
 class MarkerConfig(BaseModel):
     """Marker parser configuration."""
     device: Literal["cpu", "cuda"] = Field(
-        ...,
+        default="cpu",
         description="Device to run Marker on: 'cpu' or 'cuda'"
     )
 
@@ -721,9 +751,12 @@ class Settings(BaseSettings):
     def _resolve_paths(cls, config_data: dict, base_dir: Path) -> dict:
         """Resolve path values relative to project root.
 
-        Recursively processes the config dictionary and converts values
-        that look like file paths (strings containing '/' or ending with
-        common file extensions) to absolute paths.
+        All paths in the configuration file are resolved relative to the project root.
+        Absolute paths are left unchanged.
+
+        Only values that look like file paths (containing '/' or ending with
+        common file extensions) are resolved. Simple values like 'INFO', 'cpu', etc.
+        are left unchanged.
 
         Args:
             config_data: Configuration dictionary.
@@ -732,41 +765,34 @@ class Settings(BaseSettings):
         Returns:
             Configuration dictionary with resolved paths.
         """
-        import re
 
         def is_path_like(value: str) -> bool:
             """Check if a string looks like a file path."""
-            if not isinstance(value, str):
-                return False
-            # Skip empty strings
             if not value:
                 return False
-            # Skip URLs (http://, https://, ftp://, etc.)
-            if re.match(r'^[a-zA-Z][a-zA-Z0-9+.-]*://', value):
-                return False
-            # Check for path separators or file extensions
-            return '/' in value or value.endswith(('.txt', '.yaml', '.yml', '.json', '.csv', '.md'))
+            # Must contain '/' to be considered a path
+            # This avoids converting simple values like 'INFO', 'cpu', 'docling'
+            return '/' in value
 
         def resolve_value(value: Any) -> Any:
-            """Resolve a single value if it's a path."""
-            if is_path_like(value):
+            """Resolve a single value if it's a relative path."""
+            if isinstance(value, str) and is_path_like(value):
                 path = Path(value)
-                # Don't modify absolute paths
-                if path.is_absolute():
-                    return value
-                # Resolve relative paths against project root
-                resolved = base_dir / path
-                return str(resolved)
+                if not path.is_absolute():
+                    return str(base_dir / path)
             return value
 
-        def process_dict(d: dict) -> dict:
+        def process_dict(d: dict[str, Any]) -> dict[str, Any]:
             """Recursively process dictionary."""
-            result = {}
+            result: dict[str, Any] = {}
             for k, v in d.items():
                 if isinstance(v, dict):
                     result[k] = process_dict(v)
                 elif isinstance(v, list):
-                    result[k] = [resolve_value(item) if isinstance(item, str) else item for item in v]
+                    result[k] = [
+                        resolve_value(item) if isinstance(item, str) else item
+                        for item in v
+                    ]
                 elif isinstance(v, str):
                     result[k] = resolve_value(v)
                 else:

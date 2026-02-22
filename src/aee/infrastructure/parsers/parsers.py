@@ -255,7 +255,8 @@ class MarkerParser(BaseParser):
             # Extract text content with fallback chain
             text = (
                 getattr(rendered, "markdown", None) or
-                getattr(rendered, "text", str(rendered))
+                getattr(rendered, "text", None) or
+                str(rendered)
             )
 
             # Extract metadata safely
@@ -275,11 +276,12 @@ class MarkerParser(BaseParser):
             raise
 
 
-def get_parser(parser_name: str) -> BaseParser:
+def get_parser(parser_name: str, config: Any = None) -> BaseParser:
     """Factory function to get a parser instance by name.
 
     Args:
         parser_name: Name of the parser ("docling" or "marker").
+        config: Optional configuration for the parser.
 
     Returns:
         Parser instance.
@@ -290,9 +292,9 @@ def get_parser(parser_name: str) -> BaseParser:
     parser_name = parser_name.lower()
 
     if parser_name == "docling":
-        return DoclingParser()
+        return DoclingParser(config)
     elif parser_name == "marker":
-        return MarkerParser()
+        return MarkerParser(config)
     else:
         raise ValueError(
             f"Unknown parser: {parser_name}. "

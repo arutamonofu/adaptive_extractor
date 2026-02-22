@@ -5,13 +5,16 @@ from TaskConfig, enabling flexible task definitions without hardcoded models.
 """
 
 import logging
-from typing import Any, Dict, Literal, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Type, Union
 
 from pydantic import BaseModel, Field, create_model
 
 from aee.domain.entities import Experiment
 
 from .config import FieldSpec, TaskConfig
+
+if TYPE_CHECKING:
+    import pandas as pd  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +53,7 @@ def _get_python_type(type_spec: Union[Type, str]) -> Type:
     raise ValueError(f"Cannot convert type specification: {type_spec}")
 
 
-def _create_field_type(spec: FieldSpec) -> Type:
+def _create_field_type(spec: FieldSpec) -> Type[Any]:
     """Create the type annotation for a field based on FieldSpec.
 
     Args:
@@ -59,16 +62,16 @@ def _create_field_type(spec: FieldSpec) -> Type:
     Returns:
         Type annotation for the field.
     """
-    base_type = _get_python_type(spec.type)
+    base_type: Type[Any] = _get_python_type(spec.type)
 
     # Handle Literal types with choices
     if spec.choices:
-        base_type = Literal[tuple(spec.choices)]  # type: ignore
+        base_type = Literal[tuple(spec.choices)]  # type: ignore[assignment]
 
     if spec.required:
         return base_type
     else:
-        return Optional[base_type]
+        return Optional[base_type]  # type: ignore[return-value]
 
 
 def create_experiment_model(
@@ -117,13 +120,12 @@ def create_experiment_model(
         field_type = _create_field_type(spec)
         pydantic_field = spec.to_pydantic_field()
 
-        fields[field_name] = (field_type, pydantic_field)
+        fields[field_name] = (field_type, pydantic_field)  # type: ignore[assignment]
 
     # Create the dynamic model
-    model_name = task_config.experiment_model_name
-    model = create_model(model_name, __base__=base_class, **fields)
+    model = create_model("Experiment", __base__=base_class, **fields)
 
-    logger.info(f"Created experiment model '{model_name}' with {len(fields)} fields")
+    logger.info(f"Created experiment model with {len(fields)} fields")
 
     return model
 
@@ -151,14 +153,13 @@ def create_output_model(
     """
     from typing import List
 
-    fields = {
-        "experiments": (List[experiment_model], Field(default_factory=list))
+    fields: Dict[str, Any] = {
+        "experiments": (List[experiment_model], Field(default_factory=list))  # type: ignore[arg-type,valid-type]
     }
 
-    model_name = task_config.output_model_name
-    model = create_model(model_name, __base__=BaseModel, **fields)
+    model = create_model("ExtractionOutput", __base__=BaseModel, **fields)
 
-    logger.info(f"Created output model '{model_name}'")
+    logger.info("Created output model 'ExtractionOutput'")
 
     return model
 
@@ -188,7 +189,7 @@ def create_row_converter(
     import pandas as pd
 
     def _get_value(
-        row: pd.Series,
+        row: "pd.Series",
         field_name: str,
         spec: FieldSpec,
     ) -> Any:
@@ -236,7 +237,7 @@ def create_row_converter(
             logger.debug(f"Failed to convert '{value}' to {spec.type}")
             return spec.default if not spec.required else None
 
-    def converter(row: pd.Series):
+    def converter(row: "pd.Series"):
         """Convert pandas Series to experiment model.
 
         Args:
@@ -265,7 +266,7 @@ def create_row_converter(
             logger.error(f"Failed to create experiment: {e}")
             return None
 
-    return converter
+    return converter  # type: ignore[return-value]
 
 
 def create_all_models(

@@ -291,11 +291,20 @@ class AgentManager:
                 continue
 
         # Sort by F1 score if available
-        if comparisons and "f1" in comparisons[0].get("metrics", {}):
-            comparisons.sort(
-                key=lambda x: x.get("metrics", {}).get("f1", 0),
-                reverse=True
-            )
+        if comparisons:
+            first_metrics = comparisons[0].get("metrics")
+            if isinstance(first_metrics, dict) and "f1" in first_metrics:
+                def get_f1(x: dict) -> float:
+                    metrics = x.get("metrics")
+                    if isinstance(metrics, dict):
+                        f1_val = metrics.get("f1", 0)
+                        return float(f1_val) if f1_val is not None else 0.0
+                    return 0.0
+
+                comparisons.sort(
+                    key=get_f1,
+                    reverse=True
+                )
 
         return {
             "total_agents": len(comparisons),

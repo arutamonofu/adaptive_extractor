@@ -7,7 +7,7 @@ import dspy
 from aee.domain.agents.base import BaseAgent
 
 
-class UniversalExtractorMeta(type(BaseAgent), type(dspy.Module)):
+class UniversalExtractorMeta(type(BaseAgent), type(dspy.Module)):  # type: ignore[misc]
     """Metaclass for UniversalExtractor to resolve metaclass conflict."""
     pass
 

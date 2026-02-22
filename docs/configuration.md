@@ -2,6 +2,33 @@
 
 Complete reference for AutoEvoExtractor configuration.
 
+## Configuration File Structure
+
+Configuration files are organized into the following structure:
+
+```
+config/
+├── systems/                    # System configurations (experiments)
+│   ├── dev.yaml               # Development environment
+│   ├── exp_high_trials.yaml   # Experiment with high num_trials
+│   └── exp_low_temp.yaml      # Experiment with low temperature
+│
+├── initial_instructions/       # Initial instructions for DSPy optimization
+│   ├── nanozymes_sota.txt
+│   ├── nanozymes_base.txt
+│   └── proteins_v1.txt
+│
+└── tasks/                      # Task definitions (what to extract)
+    ├── nanozymes.yaml         # Nanozymes extraction task
+    ├── proteins.yaml          # Proteins extraction task
+    └── ...
+```
+
+**Key points:**
+- **System configs** (`config/systems/*.yaml`): Define experiment parameters (LLM settings, optimization parameters, paths, and initial instruction)
+- **Task configs** (`config/tasks/*.yaml`): Define extraction fields, validation rules, and CSV mapping
+- **Initial instructions** (`config/initial_instructions/`): Starting prompts for DSPy optimization (part of experiment configuration)
+
 ## Configuration Loading
 
 **YAML configuration file is REQUIRED.** There is no fallback to internal defaults.
@@ -22,7 +49,7 @@ CLI arguments like `--overwrite` are passed directly to use cases and do not ove
 ### Complete Example
 
 ```yaml
-# config/my_config.yaml
+# config/systems/dev.yaml
 
 project:
   log_level: "INFO"
@@ -264,10 +291,10 @@ paths:
 Task configuration in YAML uses a nested structure under `task.evaluation.*`:
 
 ```yaml
-# config/my_config.yaml
+# config/systems/dev.yaml
 task:
   name: "nanozymes"
-  initial_instruction_file: "config/initial_instructions/nanozymes_sota.txt"  # REQUIRED
+  initial_instruction_file: "config/initial_instructions/nanozymes_sota.txt"  # REQUIRED (relative to project root)
   evaluation:
     compare_fields:            # Fields for evaluation - REQUIRED
       - formula
@@ -294,8 +321,8 @@ task:
 ```
 
 **Fields:**
-- `name` — Task identifier (must match task name in `src/aee/domain/tasks/{task_name}/task.yaml`)
-- `initial_instruction_file` — Path to initial instruction file for DSPy optimization (**required**)
+- `name` — Task identifier (must match task config in `config/tasks/{task_name}.yaml`)
+- `initial_instruction_file` — Path to initial instruction file for DSPy optimization, relative to project root (**required**)
 - `evaluation.compare_fields` — List of field names used for evaluation during optimization (**required**)
 - `evaluation.float_tolerance` — Tolerance for floating-point comparisons (0.0 to 1.0) (**required**)
 

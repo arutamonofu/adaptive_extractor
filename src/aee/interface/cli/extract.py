@@ -95,12 +95,10 @@ def extract_command(argv: Optional[list] = None) -> int:
             enable_circuit_breaker=True,
         )
 
-        # Validate agent path
-        # Resolve relative paths relative to agents/ directory
+        # Resolve agent path relative to project root if not absolute
         agent_path = Path(args.agent)
         if not agent_path.is_absolute():
-            base_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
-            agent_path = base_dir / "data" / "agents" / agent_path
+            agent_path = Path.cwd() / agent_path
         if not agent_path.exists():
             logger.error(f"Agent not found: {agent_path}")
             print(f"✗ Error: Agent not found: {agent_path}")
@@ -109,7 +107,7 @@ def extract_command(argv: Optional[list] = None) -> int:
         # Load task definition
         task_name = custom_settings.task.name
         task = get_task(task_name)
-        logger.info(f"Task loaded: {task.name}")
+        logger.info(f"Task loaded: {task.name}")  # type: ignore[attr-defined]
 
         # Get all documents from parsed directory
         doc_repo = DocumentRepository(parsed_dir=custom_settings.paths.parsed_dir)
@@ -147,12 +145,12 @@ def extract_command(argv: Optional[list] = None) -> int:
         use_case = BatchPredictionUseCase(
             agent_manager=agent_manager,
             document_repo=doc_repo,
-            prediction_repo=pred_repo,
+            extraction_repo=pred_repo,
         )
 
         # Build request
         request = BatchPredictionRequest(
-            task=task,
+            task=task,  # type: ignore[arg-type]
             agent_path=agent_path,
             document_ids=document_ids,
             output_dir=output_dir,

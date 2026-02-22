@@ -155,12 +155,14 @@ class AgentMigrator:
 
             migrate_func = self._migrations[current_version]
             migrated_data = migrate_func(migrated_data)
-            current_version = self.detect_version(migrated_data)
+            detected_version = self.detect_version(migrated_data)
 
-            if current_version is None:
+            if detected_version is None:
                 # Migration function should set version
                 migrated_data["version"] = self.CURRENT_VERSION
                 break
+
+            current_version = detected_version
 
         return migrated_data
 

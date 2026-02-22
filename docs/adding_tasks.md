@@ -15,30 +15,45 @@ The system automatically generates from YAML:
 - Standard field types (str, int, float, bool)
 - Basic validation (required/optional, choices, min/max)
 - Regex patterns for string fields
-- CSV column mapping via alt_names
+- CSV column mapping via `row_converter`
+
+---
+
+## Configuration Structure
+
+Task configurations are split into two parts:
+
+```
+config/
+├── systems/                    # System configurations (experiments)
+│   ├── dev.yaml               # Development environment
+│   └── exp_high_trials.yaml   # Experiment with high num_trials
+│
+├── initial_instructions/       # Initial instructions for DSPy
+│   ├── nanozymes_sota.txt
+│   └── proteins_v1.txt
+│
+└── tasks/                      # Task definitions (what to extract)
+    ├── nanozymes.yaml
+    └── proteins.yaml
+```
+
+**Key points:**
+- **Task config** (`config/tasks/{task}.yaml`): Defines extraction fields, validation rules, CSV mapping
+- **System config** (`config/systems/*.yaml`): Defines experiment parameters including initial instruction
+- **Initial instruction** (`config/initial_instructions/`): Starting prompt for DSPy optimization
 
 ---
 
 ## Step-by-Step Guide
 
-### Step 1: Create Task Directory
+### Step 1: Create Task Configuration
 
-```bash
-mkdir -p src/aee/domain/tasks/{task_name}
-```
-
-### Step 2: Create Task YAML
-
-Create `src/aee/domain/tasks/{task_name}/task.yaml`:
+Create `config/tasks/{task_name}.yaml`:
 
 ```yaml
+# config/tasks/proteins.yaml
 name: proteins
-description: Extract protein structure experiments
-
-version: 1.0.0
-tags:
-  - biology
-  - proteins
 
 # Evaluation settings (all required)
 compare_fields:
@@ -48,18 +63,12 @@ compare_fields:
 
 float_tolerance: 0.05
 
-# Instruction file for DSPy (required)
-instruction_file: config/initial_instructions/proteins_v1.txt
-
 # Fields to extract
 fields:
   protein_name:
     type: str
     description: "Protein name (e.g., 'Cytochrome C')"
     required: true
-    alt_names:
-      - protein
-      - name
 
   structure_method:
     type: str
@@ -96,7 +105,7 @@ row_converter:
     - resolution_angstrom
 ```
 
-### Step 3: Create Initial Instruction
+### Step 2: Create Initial Instruction
 
 Create `config/initial_instructions/proteins_v1.txt`:
 
@@ -113,6 +122,25 @@ GUIDELINES:
 1. Extract each experiment separately
 2. Be precise with numerical values
 3. Use null for missing information
+```
+
+### Step 3: Update System Configuration
+
+Update or create a system config (e.g., `config/systems/dev.yaml`):
+
+```yaml
+# config/systems/dev.yaml
+task:
+  name: "proteins"
+  initial_instruction_file: "config/initial_instructions/proteins_v1.txt"  # Relative to project root
+  evaluation:
+    compare_fields:
+      - protein_name
+      - structure_method
+      - resolution
+    float_tolerance: 0.05
+
+# ... other system settings (llm, optimization, paths, etc.)
 ```
 
 ### Step 4: Prepare Ground Truth
@@ -151,7 +179,7 @@ print(f"  Fields: {len(task['config'].experiment_fields)}")
 ### Step 7: Run Optimization
 
 ```bash
-python scripts/optimize.py --config default.yaml
+python -m aee.interface.cli.optimize --config config/systems/dev.yaml
 ```
 
 ---
@@ -168,7 +196,6 @@ python scripts/optimize.py --config default.yaml
 | `min_value` | float | Minimum for numeric | No |
 | `max_value` | float | Maximum for numeric | No |
 | `pattern` | str | Regex pattern for strings | No |
-| `alt_names` | list[str] | Alternative CSV column names | No |
 
 **Type examples:**
 - `type: str` — string value
@@ -186,7 +213,7 @@ python scripts/optimize.py --config default.yaml
 - Use clear, descriptive field names (snake_case)
 - Add detailed descriptions (helps LLM understand)
 - Mark fields as `required: false` if optional
-- Use `alt_names` for CSV flexibility
+- Use `row_converter` for CSV column mapping
 - Use `choices` for categorical fields
 
 ### Instruction Tips
@@ -208,4 +235,6 @@ python scripts/optimize.py --config default.yaml
 ## Example Tasks
 
 See existing tasks for reference:
-- `src/aee/domain/tasks/nanozymes/task.yaml` — YAML-based task
+- `config/tasks/nanozymes.yaml` — Nanozymes extraction task
+- `config/systems/dev.yaml` — Development system configuration
+- `config/initial_instructions/nanozymes_sota.txt` — Example initial instruction

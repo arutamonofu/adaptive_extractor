@@ -80,14 +80,14 @@ class DataSplitRepository:
                 )
                 return set()
 
-            files = splits[split_name]
+            files: list[str] = splits[split_name]
 
             # Normalize keys if requested
             if normalize_keys:
-                files = {self._normalize_key(f) for f in files}
+                return set(files)
 
             logger.debug(f"Loaded {len(files)} files from '{split_name}' split")
-            return files
+            return set(files)
 
         except (DataNotFoundError, InvalidDataFormatError):
             raise

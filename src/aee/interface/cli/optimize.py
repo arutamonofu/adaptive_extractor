@@ -138,8 +138,13 @@ def load_task_with_instruction(task_name: str, config) -> tuple:
     Raises:
         FileNotFoundError: If YAML config not found.
     """
-    # Load from YAML
-    yaml_path = Path(__file__).resolve().parent.parent.parent / "domain" / "tasks" / task_name / "task.yaml"
+    # Load from YAML: config/tasks/{task_name}.yaml
+    yaml_path = (
+        Path(__file__).resolve().parent.parent.parent.parent.parent
+        / "config"
+        / "tasks"
+        / f"{task_name}.yaml"
+    )
 
     if not yaml_path.exists():
         raise FileNotFoundError(f"Task YAML config not found: {yaml_path}")
@@ -234,7 +239,8 @@ def optimize_command(argv: Optional[list] = None) -> int:
         train_limit = custom_settings.optimization.train_split
         val_limit = custom_settings.optimization.total_load
 
-        # task is a dict from get_task() with keys: config, experiment_model, output_model, signature, row_converter
+        # task is a dict from get_task() with keys: config, experiment_model,
+        # output_model, signature, row_converter
         # OptimizeAgentRequest expects task: TaskConfig, so we pass task["config"]
         # But we also need to pass signature separately for agent creation
 

@@ -2,10 +2,8 @@
 
 import os
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
-from pydantic import ValidationError
 
 from aee.infrastructure.config.settings import Settings
 
@@ -62,7 +60,7 @@ class TestOllamaUrlValidation:
     def test_missing_ollama_student_url_raises_error(self, tmp_path: Path):
         """Test that missing OLLAMA_STUDENT_BASE_URL raises ValueError."""
         # Create initial instruction file
-        instruction_file = tmp_path / "initial_instructions" / "test.txt"
+        instruction_file = tmp_path / "config" / "initial_instructions" / "test.txt"
         instruction_file.parent.mkdir(parents=True, exist_ok=True)
         instruction_file.write_text("Test instruction")
 
@@ -140,7 +138,7 @@ optimization:
   verbose: false
 task:
   name: "test"
-  initial_instruction_file: "initial_instructions/test.txt"
+  initial_instruction_file: "config/initial_instructions/test.txt"
   evaluation:
     compare_fields: []
     float_tolerance: 0.05
@@ -170,7 +168,7 @@ circuit_breaker:
     def test_missing_ollama_teacher_url_raises_error(self, tmp_path: Path):
         """Test that missing OLLAMA_TEACHER_BASE_URL raises ValueError."""
         # Create initial instruction file
-        instruction_file = tmp_path / "initial_instructions" / "test.txt"
+        instruction_file = tmp_path / "config" / "initial_instructions" / "test.txt"
         instruction_file.parent.mkdir(parents=True, exist_ok=True)
         instruction_file.write_text("Test instruction")
 
@@ -247,7 +245,7 @@ optimization:
   verbose: false
 task:
   name: "test"
-  initial_instruction_file: "initial_instructions/test.txt"
+  initial_instruction_file: "config/initial_instructions/test.txt"
   evaluation:
     compare_fields: []
     float_tolerance: 0.05
@@ -277,7 +275,7 @@ circuit_breaker:
     def test_both_ollama_urls_set_succeeds(self, tmp_path: Path):
         """Test that setting both Ollama URLs succeeds."""
         # Create initial instruction file
-        instruction_file = tmp_path / "initial_instructions" / "test.txt"
+        instruction_file = tmp_path / "config" / "initial_instructions" / "test.txt"
         instruction_file.parent.mkdir(parents=True, exist_ok=True)
         instruction_file.write_text("Test instruction")
 
@@ -385,7 +383,7 @@ circuit_breaker:
     def test_empty_ollama_url_raises_error(self, tmp_path: Path):
         """Test that empty Ollama URL raises ValueError."""
         # Create initial instruction file
-        instruction_file = tmp_path / "initial_instructions" / "test.txt"
+        instruction_file = tmp_path / "config" / "initial_instructions" / "test.txt"
         instruction_file.parent.mkdir(parents=True, exist_ok=True)
         instruction_file.write_text("Test instruction")
 
@@ -462,7 +460,7 @@ optimization:
   verbose: false
 task:
   name: "test"
-  initial_instruction_file: "initial_instructions/test.txt"
+  initial_instruction_file: "config/initial_instructions/test.txt"
   evaluation:
     compare_fields: []
     float_tolerance: 0.05
@@ -498,7 +496,7 @@ class TestNonOllamaApiKeyValidation:
     def test_non_ollama_without_api_key_raises_error(self, tmp_path: Path):
         """Test that non-Ollama config without API key raises ValueError."""
         # Create initial instruction file
-        instruction_file = tmp_path / "initial_instructions" / "test.txt"
+        instruction_file = tmp_path / "config" / "initial_instructions" / "test.txt"
         instruction_file.parent.mkdir(parents=True, exist_ok=True)
         instruction_file.write_text("Test instruction")
 
@@ -575,7 +573,7 @@ optimization:
   verbose: false
 task:
   name: "test"
-  initial_instruction_file: "initial_instructions/test.txt"
+  initial_instruction_file: "config/initial_instructions/test.txt"
   evaluation:
     compare_fields: []
     float_tolerance: 0.05
@@ -607,7 +605,7 @@ circuit_breaker:
     def test_non_ollama_with_api_key_succeeds(self, tmp_path: Path):
         """Test that non-Ollama config with API key succeeds."""
         # Create initial instruction file
-        instruction_file = tmp_path / "initial_instructions" / "test.txt"
+        instruction_file = tmp_path / "config" / "initial_instructions" / "test.txt"
         instruction_file.parent.mkdir(parents=True, exist_ok=True)
         instruction_file.write_text("Test instruction")
 

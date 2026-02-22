@@ -1,6 +1,5 @@
 """Pytest fixtures and configuration for AutoEvoExtractor tests."""
 
-import hashlib
 import json
 import shutil
 from pathlib import Path
@@ -9,7 +8,7 @@ from typing import Any, Dict, List
 import pandas as pd
 import pytest
 
-from aee.domain.tasks import TaskConfig, load_task_from_yaml, get_task, get_global_registry
+from aee.domain.tasks import get_global_registry
 
 
 # ============================================================================
@@ -30,15 +29,15 @@ def nanozyme_task():
     Returns:
         Dictionary with task components (config, experiment_model, output_model, signature, row_converter).
     """
-    from aee.domain.tasks import load_task_from_yaml, get_task, register_config, TaskConfig
+    from aee.domain.tasks import load_task_from_yaml, get_task, register_config
 
     # Load and register task if not already registered
     registry = get_global_registry()
     if not registry.has("nanozymes"):
-        yaml_path = Path("src/aee/domain/tasks/nanozymes/task.yaml")
+        yaml_path = Path("config/tasks/nanozymes.yaml")
         # Load task from YAML (without instruction file)
         config = load_task_from_yaml(yaml_path)
-        # Set instruction file from config/default.yaml location
+        # Set instruction file from system config location
         config.initial_instruction_file = "config/initial_instructions/nanozymes_sota.txt"
         register_config(config)
 

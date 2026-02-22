@@ -88,7 +88,6 @@ def _parse_field_spec(field_name: str, field_data: Dict[str, Any]) -> FieldSpec:
         min_value=field_data.get("min_value", None),
         max_value=field_data.get("max_value", None),
         pattern=field_data.get("pattern", None),
-        alt_names=field_data.get("alt_names", []),
     )
 
 
@@ -169,19 +168,14 @@ def load_task_from_yaml(
         row_converter = _parse_row_converter(yaml_data["row_converter"])
 
     # Create TaskConfig
-    # Note: initial_instruction_file is loaded from config/default.yaml, not task.yaml
+    # Note: initial_instruction_file is loaded from system config (config/systems/*.yaml)
     config = TaskConfig(
         name=yaml_data["name"],
         experiment_fields=experiment_fields,
         compare_fields=yaml_data["compare_fields"],
         float_tolerance=yaml_data["float_tolerance"],
         row_converter=row_converter,
-        output_model_name=yaml_data.get("output_model_name", "ExtractionOutput"),
-        experiment_model_name=yaml_data.get("experiment_model_name", "Experiment"),
         base_class=base_class,
-        tags=yaml_data.get("tags", []),
-        version=yaml_data.get("version", "1.0.0"),
-        metadata=yaml_data.get("metadata", {}),
     )
 
     logger.info(f"Loaded task configuration: {config.name}")
@@ -268,7 +262,6 @@ def load_task_complete(
 def save_task_to_yaml(
     config: TaskConfig,
     output_path: str | Path,
-    include_metadata: bool = True,
 ) -> Path:
     """Save TaskConfig to a YAML file.
 
@@ -277,7 +270,6 @@ def save_task_to_yaml(
     Args:
         config: TaskConfig to save.
         output_path: Path for output YAML file.
-        include_metadata: Whether to include metadata fields.
 
     Returns:
         Path to saved file.
@@ -306,9 +298,6 @@ def save_task_to_yaml(
         if spec.choices:
             field_dict["choices"] = spec.choices
 
-        if spec.alt_names:
-            field_dict["alt_names"] = spec.alt_names
-
         fields_data[field_name] = field_dict
 
     yaml_data["fields"] = fields_data
@@ -318,14 +307,7 @@ def save_task_to_yaml(
         yaml_data["row_converter"] = config.row_converter.mapping
 
     # Note: initial_instruction_file is not saved to task.yaml
-    # It is configured in config/default.yaml
-
-    # Add optional metadata
-    if include_metadata:
-        yaml_data["version"] = config.version
-        yaml_data["tags"] = config.tags
-        if config.metadata:
-            yaml_data["metadata"] = config.metadata
+    # It is configured in system config (config/systems/*.yaml)
 
     # Write YAML
     output_path.parent.mkdir(parents=True, exist_ok=True)

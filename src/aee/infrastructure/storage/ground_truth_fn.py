@@ -81,7 +81,7 @@ def _identify_id_column(df: pd.DataFrame, csv_path: Path) -> str:
 
     raise DataValidationError(
         "Ground truth CSV",
-        f"No ID column found. Expected one of: {ID_COLUMNS}"
+        [f"No ID column found. Expected one of: {ID_COLUMNS}"]
     )
 
 

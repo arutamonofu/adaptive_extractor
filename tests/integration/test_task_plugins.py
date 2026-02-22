@@ -16,7 +16,7 @@ def setup_nanozyme_task():
     """Automatically register nanozyme task before each test."""
     registry = get_global_registry()
     if not registry.has("nanozymes"):
-        yaml_path = "src/aee/domain/tasks/nanozymes/task.yaml"
+        yaml_path = "config/tasks/nanozymes.yaml"
         config = load_task_from_yaml(yaml_path)
         config.initial_instruction_file = "config/initial_instructions/nanozymes_sota.txt"
         register_config(config)
@@ -59,7 +59,7 @@ class TestTaskPlugins:
         assert registry.count() == 0
 
         # Load and register task from YAML
-        yaml_path = "src/aee/domain/tasks/nanozymes/task.yaml"
+        yaml_path = "config/tasks/nanozymes.yaml"
         config = load_task_from_yaml(yaml_path)
         config.initial_instruction_file = "config/initial_instructions/nanozymes_sota.txt"
         registry.register_config(config)
@@ -85,7 +85,7 @@ class TestTaskPlugins:
         registry = TaskRegistry()
 
         # Load and register task from YAML
-        yaml_path = "src/aee/domain/tasks/nanozymes/task.yaml"
+        yaml_path = "config/tasks/nanozymes.yaml"
         config = load_task_from_yaml(yaml_path)
         config.initial_instruction_file = "config/initial_instructions/nanozymes_sota.txt"
         registry.register_config(config)

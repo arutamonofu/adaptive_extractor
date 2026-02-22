@@ -305,7 +305,7 @@ class OptimizeAgentUseCase:
     def _load_ground_truth(self, request: OptimizeAgentRequest) -> Dict[str, Any]:
         """Load ground truth data."""
         logger.info(f"Loading ground truth from {request.gt_path}")
-        return self.gt_repo.load(request.gt_path, request.task.row_converter)
+        return self.gt_repo.load(request.gt_path, request.task.row_converter)  # type: ignore[arg-type]
 
     def _prepare_datasets(
         self, request: OptimizeAgentRequest, gt_data: Dict[str, Any]
@@ -521,6 +521,7 @@ class OptimizeAgentUseCase:
         logger.info("Running pre-flight validation checks...")
 
         # Validate splits
+        assert self.validator is not None, "Validator must be initialized for pre-flight checks"
         split_result = self.validator.validate_splits(
             gt_path=request.gt_path,
             split_path=request.split_path,

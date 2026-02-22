@@ -8,8 +8,6 @@ Tests cover:
 - Saving TaskConfig to YAML
 """
 
-import json
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -94,18 +92,6 @@ class TestParseFieldSpec:
 
         assert spec.required is False
         assert spec.default == 0.0
-
-    def test_parse_field_spec_with_alt_names(self):
-        """Test parsing field spec with alternative names."""
-        field_data = {
-            "type": "float",
-            "description": "Km value",
-            "alt_names": ["km", "km_val"],
-        }
-
-        spec = _parse_field_spec("km_value", field_data)
-
-        assert spec.alt_names == ["km", "km_val"]
 
 
 class TestParseRowConverter:
@@ -294,7 +280,7 @@ class TestSaveTaskToYaml:
         # Create temporary instruction file
         instruction_file = tmp_path / "test_instruction.txt"
         instruction_file.write_text("Test instruction")
-        
+
         # Create original config
         original_config = TaskConfig(
             name="test_task",
@@ -315,8 +301,6 @@ class TestSaveTaskToYaml:
             compare_fields=["formula", "activity"],
             float_tolerance=0.10,
             initial_instruction_file=str(instruction_file),
-            tags=["test"],
-            version="1.0.0",
         )
 
         # Save to YAML

@@ -423,6 +423,7 @@ def create_lm(
         circuit_breaker = CircuitBreaker(
             failure_threshold=failure_threshold,
             reset_timeout=reset_timeout,
+            half_open_max_calls=circuit_breaker_config.half_open_max_calls,
             name=f"ollama-{config.model}",
         )
         logger.info(

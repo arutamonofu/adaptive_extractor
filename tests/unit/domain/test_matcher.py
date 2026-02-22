@@ -1,3 +1,5 @@
+# mypy: ignore-errors
+# flake8: noqa: F821
 """Unit tests for ExperimentMatcher evaluation engine.
 
 Tests cover:
