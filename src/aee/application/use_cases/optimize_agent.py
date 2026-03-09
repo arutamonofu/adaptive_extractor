@@ -16,6 +16,7 @@ from dspy.teleprompt import MIPROv2
 from aee.application.services import AgentManager, DatasetBuilder, DataValidator, ExperimentTracker
 from aee.domain.agents.base import BaseAgent
 from aee.domain.evaluation import TaskMetric
+from aee.infrastructure.llm.provider import TeacherWrapper
 from aee.infrastructure.storage import GroundTruthRepository
 from aee.shared.exceptions import UseCaseExecutionError
 
@@ -388,14 +389,22 @@ class OptimizeAgentUseCase:
         Returns:
             Optimized agent.
         """
+        # Create teacher module for bootstrapping
+        # TeacherWrapper wraps the raw LLM (OllamaLM) in a dspy.Module interface
+        teacher_module = TeacherWrapper(
+            signature_class=request.signature_class,
+            teacher_lm=request.teacher_lm
+        )
+
         # Configure MIPROv2
-        # Note: We use teacher_lm as prompt_model for generating instructions,
-        # and student_lm as task_model for running trials.
-        # We don't pass teacher= to compile() to avoid DSPy trying to compile the LLM itself.
+        # prompt_model: generates instruction candidates
+        # task_model: runs trials and generates predictions
+        # teacher: bootstraps few-shot demonstrations
         teleprompter = MIPROv2(
             metric=metric,
             prompt_model=request.teacher_lm,
             task_model=request.student_lm,
+            teacher_settings={"lm": request.teacher_lm},
             auto=None,  # Intentionally None: allows custom values for num_candidates, max_bootstrapped_demos, etc.
             num_candidates=request.num_candidates,
             max_bootstrapped_demos=request.max_bootstrapped_demos,
@@ -411,11 +420,11 @@ class OptimizeAgentUseCase:
         dspy.settings.configure(lm=request.student_lm)
 
         # Run optimization with explicit valset
-        # Note: We don't pass teacher= here because OllamaLM is not a dspy.Module
         optimized_agent = teleprompter.compile(
             base_agent,
             trainset=trainset,
             valset=valset,
+            teacher=teacher_module,  # TeacherWrapper for bootstrapping
             num_trials=request.num_trials,
             max_bootstrapped_demos=request.max_bootstrapped_demos,
             max_labeled_demos=request.max_labeled_demos,
