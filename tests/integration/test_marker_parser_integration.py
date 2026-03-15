@@ -153,6 +153,13 @@ class TestMarkerParserIntegration:
 class TestMarkerConfigLoading:
     """Test configuration loading with Marker parser."""
 
+    @patch.dict(
+        os.environ,
+        {
+            "OLLAMA_STUDENT_BASE_URL": "http://localhost:11434",
+            "OLLAMA_TEACHER_BASE_URL": "http://localhost:11434",
+        },
+    )
     def test_load_marker_config_from_yaml(self, tmp_path: Path):
         """Test loading Marker config from YAML file (minimal config)."""
         # Create required directories and files
@@ -266,6 +273,13 @@ circuit_breaker:
         # Marker config is auto-created (empty but valid)
         assert settings.parsing.marker is not None
 
+    @patch.dict(
+        os.environ,
+        {
+            "OLLAMA_STUDENT_BASE_URL": "http://localhost:11434",
+            "OLLAMA_TEACHER_BASE_URL": "http://localhost:11434",
+        },
+    )
     def test_get_parser_from_settings(self, tmp_path: Path):
         """Test getting parser instance from loaded settings."""
         # Create required directories and files

@@ -142,6 +142,13 @@ class TestGeminiParserIntegration:
 class TestGeminiConfigLoading:
     """Test configuration loading with Gemini parser."""
 
+    @patch.dict(
+        os.environ,
+        {
+            "OLLAMA_STUDENT_BASE_URL": "http://localhost:11434",
+            "OLLAMA_TEACHER_BASE_URL": "http://localhost:11434",
+        },
+    )
     def test_load_gemini_config_from_yaml(self, tmp_path: Path):
         """Test loading Gemini config from YAML file."""
         # Create required directories and files
@@ -263,6 +270,13 @@ circuit_breaker:
         assert settings.parsing.gemini.upload_timeout == 600
         assert settings.parsing.gemini.safety_settings is True
 
+    @patch.dict(
+        os.environ,
+        {
+            "OLLAMA_STUDENT_BASE_URL": "http://localhost:11434",
+            "OLLAMA_TEACHER_BASE_URL": "http://localhost:11434",
+        },
+    )
     def test_get_parser_from_settings(self, tmp_path: Path):
         """Test getting parser instance from loaded settings."""
         # Create required directories and files
