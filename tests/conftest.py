@@ -4,12 +4,9 @@ import json
 import shutil
 from pathlib import Path
 from typing import Any, Dict, List
-from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
-
-from aee.domain.tasks import get_global_registry
 
 
 # ============================================================================
@@ -30,21 +27,41 @@ def nanozyme_task():
     Uses module scope to avoid reloading task for every test.
 
     Returns:
-        Dictionary with task components (config, experiment_model, output_model, signature, row_converter).
+        Dictionary with task components (config, experiment_model, output_model, row_converter).
+        Note: signature is created lazily on first access as it requires instruction file.
     """
-    from aee.domain.tasks import load_task_from_yaml, get_task, register_config
+    from aee.domain.tasks import load_task_from_yaml
+    from aee.domain.tasks.dynamic_models import create_all_models, create_row_converter
+    from aee.domain.tasks.signature import create_signature
 
-    # Load and register task if not already registered
-    registry = get_global_registry()
-    if not registry.has("nanozymes"):
-        yaml_path = Path("config/tasks/nanozymes.yaml")
-        # Load task from YAML (without instruction file)
-        config = load_task_from_yaml(yaml_path)
-        # Set instruction file from system config location
-        config.initial_instruction_file = "config/initial_instructions/nanozymes_sota.txt"
-        register_config(config)
+    yaml_path = Path("config/tasks/nanozymes.yaml")
+    # Load task from YAML (without instruction file)
+    config = load_task_from_yaml(yaml_path)
+    # Note: initial_instruction_file is not set - it's only needed for DSPy signatures
 
-    return get_task("nanozymes")
+    # Generate models and converter directly
+    experiment_model, output_model = create_all_models(config)
+    row_converter = create_row_converter(config, experiment_model)
+
+    # Create signature lazily (requires instruction file)
+    _signature_cache = {}
+
+    def get_signature():
+        if "signature" not in _signature_cache:
+            # For tests that need signature, create a mock instruction
+            _signature_cache["signature"] = create_signature(
+                config, experiment_model, output_model,
+                instruction="Extract structured data from scientific documents."
+            )
+        return _signature_cache["signature"]
+
+    return {
+        "config": config,
+        "experiment_model": experiment_model,
+        "output_model": output_model,
+        "row_converter": row_converter,
+        "signature": get_signature(),  # Lazy access
+    }
 
 
 @pytest.fixture
@@ -66,7 +83,7 @@ def task_config_dict() -> Dict[str, Any]:
             "temperature",
         ],
         "float_tolerance": 0.10,
-        "initial_instruction_file": "config/initial_instructions/nanozymes_sota.txt",
+        # Note: initial_instruction_file not included - only needed for DSPy signatures
     }
 
 
@@ -412,114 +429,6 @@ def row_converter(nanozyme_task):
         Row converter function.
     """
     return nanozyme_task["row_converter"]
-
-
-# ============================================================================
-# Fixtures for generate_manual_agent.py tests
-# ============================================================================
-
-@pytest.fixture
-def mock_settings_for_manual_agent():
-    """Create mock Settings object for manual agent generation testing.
-
-    Returns:
-        MagicMock with settings for manual agent generation.
-    """
-    mock = MagicMock()
-    mock.task.name = "nanozymes"
-    mock.task.initial_instruction_file = "config/initial_instructions/nanozymes_sota.txt"
-    mock.paths.parsed_dir = Path("data/parsed")
-    mock.paths.agents_dir = Path("data/agents")
-    mock.paths.splits_file = Path("data/splits.json")
-    mock.paths.ground_truth_dir = Path("data/ground_truth")
-    return mock
-
-
-@pytest.fixture
-def splits_with_train_manual(tmp_path: Path) -> Path:
-    """Create a sample splits JSON file with train_manual split.
-
-    Args:
-        tmp_path: Pytest temporary directory.
-
-    Returns:
-        Path to created JSON file.
-    """
-    splits_path = tmp_path / "splits.json"
-    splits_data = {
-        "train": ["paper1", "paper2", "paper3"],
-        "train_manual": ["paper1", "paper2"],
-        "val": ["paper4"],
-        "test": ["paper5"],
-    }
-    splits_path.write_text(json.dumps(splits_data), encoding="utf-8")
-    return splits_path
-
-
-@pytest.fixture
-def splits_without_train_manual(tmp_path: Path) -> Path:
-    """Create a sample splits JSON file without train_manual split.
-
-    Args:
-        tmp_path: Pytest temporary directory.
-
-    Returns:
-        Path to created JSON file.
-    """
-    splits_path = tmp_path / "splits.json"
-    splits_data = {
-        "train": ["paper1", "paper2", "paper3"],
-        "val": ["paper4"],
-        "test": ["paper5"],
-    }
-    splits_path.write_text(json.dumps(splits_data), encoding="utf-8")
-    return splits_path
-
-
-@pytest.fixture
-def gt_csv_for_manual(tmp_path: Path) -> Path:
-    """Create a sample ground truth CSV file for manual agent testing.
-
-    Args:
-        tmp_path: Pytest temporary directory.
-
-    Returns:
-        Path to created CSV file.
-    """
-    csv_path = tmp_path / "gt.csv"
-    csv_path.write_text(
-        "filename,formula,activity,length,km_value,vmax_value,ph,temperature,surface\n"
-        "paper1,Fe3O4,peroxidase,10,0.05,100,7.0,25.0,naked\n"
-        "paper2,CuO,oxidase,20,0.08,150,7.5,30.0,PVP\n",
-        encoding="utf-8",
-    )
-    return csv_path
-
-
-@pytest.fixture
-def parsed_docs_for_manual(tmp_path: Path) -> Path:
-    """Create sample parsed markdown documents for manual agent testing.
-
-    Args:
-        tmp_path: Pytest temporary directory.
-
-    Returns:
-        Path to parsed directory.
-    """
-    parsed_dir = tmp_path / "parsed" / "train" / "manual"
-    parsed_dir.mkdir(parents=True, exist_ok=True)
-
-    # Create sample markdown files
-    (parsed_dir / "paper1.md").write_text(
-        "# Sample Document 1\n\nThis is a test document with Fe3O4 nanozymes.",
-        encoding="utf-8",
-    )
-    (parsed_dir / "paper2.md").write_text(
-        "# Sample Document 2\n\nThis is a test document with CuO nanozymes.",
-        encoding="utf-8",
-    )
-
-    return parsed_dir.parent.parent  # Return parsed_dir root
 
 
 # ============================================================================

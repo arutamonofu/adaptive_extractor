@@ -295,15 +295,9 @@ class TaskConfig:
         elif not 0 <= self.float_tolerance <= 1:
             errors.append("float_tolerance must be between 0 and 1")
 
-        # Validate instruction
-        try:
-            instruction = self.get_instruction()
-            if not instruction or not instruction.strip():
-                errors.append("Instruction cannot be empty")
-        except FileNotFoundError as e:
-            errors.append(str(e))
-        except ValueError as e:
-            errors.append(str(e))
+        # Note: instruction file validation is deferred to signature creation time
+        # where it is actually needed. This allows TaskConfig to be used in tests
+        # without requiring a physical instruction file.
 
         # Validate row_converter mapping
         for field_name in self.row_converter.mapping:

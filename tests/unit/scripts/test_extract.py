@@ -136,14 +136,8 @@ llm:
     non_ollama:
       max_tokens: 256
 parsing:
-  parser: docling
+  parser: marker
   overwrite: false
-  docling:
-    device: cpu
-    num_threads: 2
-    do_ocr: false
-    do_table_structure: false
-    ocr_backend: onnxruntime
   marker:
     device: cpu
 optimization:
@@ -252,14 +246,8 @@ llm:
     non_ollama:
       max_tokens: 256
 parsing:
-  parser: docling
+  parser: marker
   overwrite: false
-  docling:
-    device: cpu
-    num_threads: 2
-    do_ocr: false
-    do_table_structure: false
-    ocr_backend: onnxruntime
   marker:
     device: cpu
 optimization:
@@ -369,14 +357,8 @@ llm:
     non_ollama:
       max_tokens: 256
 parsing:
-  parser: docling
+  parser: marker
   overwrite: false
-  docling:
-    device: cpu
-    num_threads: 2
-    do_ocr: false
-    do_table_structure: false
-    ocr_backend: onnxruntime
   marker:
     device: cpu
 optimization:
@@ -529,14 +511,8 @@ llm:
     non_ollama:
       max_tokens: 256
 parsing:
-  parser: docling
+  parser: marker
   overwrite: false
-  docling:
-    device: cpu
-    num_threads: 2
-    do_ocr: false
-    do_table_structure: false
-    ocr_backend: onnxruntime
   marker:
     device: cpu
 optimization:
@@ -660,14 +636,8 @@ llm:
     non_ollama:
       max_tokens: 256
 parsing:
-  parser: docling
+  parser: marker
   overwrite: false
-  docling:
-    device: cpu
-    num_threads: 2
-    do_ocr: false
-    do_table_structure: false
-    ocr_backend: onnxruntime
   marker:
     device: cpu
 optimization:

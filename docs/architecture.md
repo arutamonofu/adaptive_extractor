@@ -45,7 +45,7 @@ AutoEvoExtractor uses a simplified architecture optimized for R&D experimentatio
 │ - load_ground_truth()               │
 │ - load_split(), load_all_splits()   │
 │ - create_lm(), setup_llm()          │
-│ - DoclingParser, MarkerParser       │
+│ - MarkerParser                        │
 └─────────────────────────────────────┘
 ```
 
@@ -93,7 +93,7 @@ Utility functions:
 |----------|-----------|
 | Storage | `save_agent()`, `load_agent()`, `load_ground_truth()` |
 | LLM | `create_lm()`, `setup_student()`, `setup_teacher()` |
-| Parsers | `DoclingParser`, `MarkerParser`, `get_parser()` |
+| Parsers | `MarkerParser`, `get_parser()` |
 
 ---
 

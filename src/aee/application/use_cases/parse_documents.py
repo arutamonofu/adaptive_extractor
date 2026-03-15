@@ -22,13 +22,13 @@ class ParseDocumentsRequest:
     Attributes:
         input_paths: List of PDF file paths to parse.
         output_dir: Directory to save parsed documents.
-        parser_name: Name of parser to use (e.g., "docling", "marker").
+        parser_name: Name of parser to use (e.g., "marker").
         overwrite: Whether to overwrite existing parsed files.
     """
 
     input_paths: List[Path]
     output_dir: Path
-    parser_name: str = "docling"
+    parser_name: str = "marker"
     overwrite: bool = False
 
 
@@ -68,7 +68,7 @@ class ParseDocumentsUseCase:
         request = ParseDocumentsRequest(
             input_paths=[Path("doc1.pdf"), Path("doc2.pdf")],
             output_dir=Path("data/parsed"),
-            parser_name="docling",
+            parser_name="marker",
         )
 
         response = use_case.execute(request)

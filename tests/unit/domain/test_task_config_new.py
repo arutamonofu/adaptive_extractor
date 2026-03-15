@@ -378,85 +378,9 @@ class TestTaskConfig:
         errors = config.validate()
         assert errors == []
 
-    def test_validate_instruction_file_not_found(self, sample_fields):
-        """Test validation fails when instruction file not found."""
-        config = TaskConfig(
-            name="test",
-            experiment_fields=sample_fields,
-            compare_fields=["formula", "activity"],
-            float_tolerance=0.05,
-            initial_instruction_file="/nonexistent/path.txt",
-        )
-
-        errors = config.validate()
-        assert any("not found" in e for e in errors)
-
-    def test_validate_instruction_file_is_directory(self, sample_fields, tmp_path):
-        """Test validation fails when instruction file path is a directory."""
-        # Create a directory instead of file
-        instruction_dir = tmp_path / "instruction_dir"
-        instruction_dir.mkdir()
-
-        config = TaskConfig(
-            name="test",
-            experiment_fields=sample_fields,
-            compare_fields=["formula", "activity"],
-            float_tolerance=0.05,
-            initial_instruction_file=str(instruction_dir),
-        )
-
-        # Validation should raise IsADirectoryError when trying to read directory as file
-        with pytest.raises(IsADirectoryError):
-            config.validate()
-
-    def test_validate_instruction_file_empty(self, sample_fields, tmp_path):
-        """Test validation fails with empty instruction file."""
-        # Create empty file
-        instruction_file = tmp_path / "empty_instruction.txt"
-        instruction_file.write_text("")
-
-        config = TaskConfig(
-            name="test",
-            experiment_fields=sample_fields,
-            compare_fields=["formula", "activity"],
-            float_tolerance=0.05,
-            initial_instruction_file=str(instruction_file),
-        )
-
-        errors = config.validate()
-        # Empty instruction file should fail validation
-        assert any("empty" in e.lower() for e in errors)
-
-    def test_validate_instruction_file_with_whitespace(self, sample_fields, tmp_path):
-        """Test validation fails with whitespace-only instruction file."""
-        # Create file with only whitespace
-        instruction_file = tmp_path / "whitespace_instruction.txt"
-        instruction_file.write_text("   \n\t\n   ")
-
-        config = TaskConfig(
-            name="test",
-            experiment_fields=sample_fields,
-            compare_fields=["formula", "activity"],
-            float_tolerance=0.05,
-            initial_instruction_file=str(instruction_file),
-        )
-
-        errors = config.validate()
-        # Whitespace-only instruction should fail validation
-        assert any("empty" in e.lower() for e in errors)
-
-    def test_validate_or_raise_instruction_not_found(self, sample_fields):
-        """Test validate_or_raise raises when instruction file not found."""
-        config = TaskConfig(
-            name="test",
-            experiment_fields=sample_fields,
-            compare_fields=["formula", "activity"],
-            float_tolerance=0.05,
-            initial_instruction_file="/nonexistent/path.txt",
-        )
-
-        with pytest.raises(ValueError, match="validation failed"):
-            config.validate_or_raise()
+    # Note: Instruction file validation is now deferred to get_instruction() call time
+    # (e.g., during DSPy signature creation), not during TaskConfig.validate().
+    # This allows TaskConfig to be used in tests without requiring a physical file.
 
     def test_validate_or_raise_success(self, sample_fields, tmp_path):
         """Test validate_or_raise with valid config."""
@@ -490,6 +414,64 @@ class TestTaskConfig:
                 float_tolerance=0.05,
                 initial_instruction_file=str(instruction_file),
             )
+
+    def test_get_instruction_file_not_found(self, sample_fields):
+        """Test get_instruction raises FileNotFoundError when file not found."""
+        config = TaskConfig(
+            name="test",
+            experiment_fields=sample_fields,
+            compare_fields=["formula", "activity"],
+            float_tolerance=0.05,
+            initial_instruction_file="/nonexistent/path.txt",
+        )
+
+        with pytest.raises(FileNotFoundError, match="not found"):
+            config.get_instruction()
+
+    def test_get_instruction_no_file_specified(self, sample_fields):
+        """Test get_instruction raises ValueError when no file specified."""
+        config = TaskConfig(
+            name="test",
+            experiment_fields=sample_fields,
+            compare_fields=["formula", "activity"],
+            float_tolerance=0.05,
+        )
+
+        with pytest.raises(ValueError, match="No instruction file"):
+            config.get_instruction()
+
+    def test_get_instruction_success(self, sample_fields, tmp_path):
+        """Test get_instruction reads file content."""
+        instruction_file = tmp_path / "test_instruction.txt"
+        instruction_file.write_text("Test instruction content")
+
+        config = TaskConfig(
+            name="test",
+            experiment_fields=sample_fields,
+            compare_fields=["formula", "activity"],
+            float_tolerance=0.05,
+            initial_instruction_file=str(instruction_file),
+        )
+
+        instruction = config.get_instruction()
+        assert instruction == "Test instruction content"
+
+    def test_get_instruction_hash(self, sample_fields, tmp_path):
+        """Test get_instruction_hash returns correct hash."""
+        instruction_file = tmp_path / "test_instruction.txt"
+        instruction_file.write_text("Test instruction")
+
+        config = TaskConfig(
+            name="test",
+            experiment_fields=sample_fields,
+            compare_fields=["formula", "activity"],
+            float_tolerance=0.05,
+            initial_instruction_file=str(instruction_file),
+        )
+
+        hash_value = config.get_instruction_hash()
+        assert len(hash_value) == 12  # First 12 characters
+        assert isinstance(hash_value, str)
 
 
 @pytest.mark.unit

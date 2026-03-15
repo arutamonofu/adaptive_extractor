@@ -8,8 +8,6 @@ from typing import Any
 _NOISY_LIBRARIES = [
     "RapidOCR",
     "rapidocr_onnxruntime",
-    "docling",
-    "docling.pipeline",
     "pdfminer",
     "urllib3",
     "httpx",

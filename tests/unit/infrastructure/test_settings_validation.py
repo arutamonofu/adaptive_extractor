@@ -118,14 +118,8 @@ paths:
   agents_dir: "data/agents"
   extractions_dir: "data/extractions"
 parsing:
-  parser: "docling"
+  parser: "marker"
   overwrite: false
-  docling:
-    device: "cpu"
-    num_threads: 4
-    do_ocr: true
-    do_table_structure: true
-    ocr_backend: "onnxruntime"
   marker:
     device: "cpu"
 optimization:
@@ -230,14 +224,8 @@ paths:
   agents_dir: "data/agents"
   extractions_dir: "data/extractions"
 parsing:
-  parser: "docling"
+  parser: "marker"
   overwrite: false
-  docling:
-    device: "cpu"
-    num_threads: 4
-    do_ocr: true
-    do_table_structure: true
-    ocr_backend: "onnxruntime"
   marker:
     device: "cpu"
 optimization:
@@ -342,14 +330,8 @@ paths:
   agents_dir: "data/agents"
   extractions_dir: "data/extractions"
 parsing:
-  parser: "docling"
+  parser: "marker"
   overwrite: false
-  docling:
-    device: "cpu"
-    num_threads: 4
-    do_ocr: true
-    do_table_structure: true
-    ocr_backend: "onnxruntime"
   marker:
     device: "cpu"
 optimization:
@@ -455,14 +437,8 @@ paths:
   agents_dir: "data/agents"
   extractions_dir: "data/extractions"
 parsing:
-  parser: "docling"
+  parser: "marker"
   overwrite: false
-  docling:
-    device: "cpu"
-    num_threads: 4
-    do_ocr: true
-    do_table_structure: true
-    ocr_backend: "onnxruntime"
   marker:
     device: "cpu"
 optimization:
@@ -574,14 +550,8 @@ paths:
   agents_dir: "data/agents"
   extractions_dir: "data/extractions"
 parsing:
-  parser: "docling"
+  parser: "marker"
   overwrite: false
-  docling:
-    device: "cpu"
-    num_threads: 4
-    do_ocr: true
-    do_table_structure: true
-    ocr_backend: "onnxruntime"
   marker:
     device: "cpu"
 optimization:
@@ -688,14 +658,8 @@ paths:
   agents_dir: "data/agents"
   extractions_dir: "data/extractions"
 parsing:
-  parser: "docling"
+  parser: "marker"
   overwrite: false
-  docling:
-    device: "cpu"
-    num_threads: 4
-    do_ocr: true
-    do_table_structure: true
-    ocr_backend: "onnxruntime"
   marker:
     device: "cpu"
 optimization:

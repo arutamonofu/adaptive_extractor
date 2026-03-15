@@ -1,12 +1,11 @@
 """Document parsers for AutoEvoExtractor.
 
 This module provides parsers for extracting text and tables from PDF
-documents using various parsing backends (Docling, Marker, etc.).
+documents using the Marker parsing backend.
 """
 
 from .base import BaseParser
-from .cleaning import TextCleaner
-from .parsers import DoclingParser, MarkerParser, get_parser
+from .parsers import MarkerParser, get_parser
 
 # Alias for backward compatibility
 DocumentParser = BaseParser
@@ -14,8 +13,6 @@ DocumentParser = BaseParser
 __all__ = [
     "BaseParser",
     "DocumentParser",
-    "TextCleaner",
-    "DoclingParser",
     "MarkerParser",
     "get_parser",
 ]

@@ -293,30 +293,6 @@ class LLMConfig(BaseModel):
     )
 
 
-class DoclingConfig(BaseModel):
-    """Docling parser configuration."""
-    device: Literal["cpu", "cuda", "mps"] = Field(
-        ...,
-        description="Device to run Docling on: 'cpu', 'cuda', or 'mps'"
-    )
-    num_threads: int = Field(
-        ...,
-        description="Number of threads for Docling processing"
-    )
-    do_ocr: bool = Field(
-        ...,
-        description="Enable OCR processing"
-    )
-    do_table_structure: bool = Field(
-        ...,
-        description="Enable table structure detection"
-    )
-    ocr_backend: Literal["onnxruntime", "torch", "openvino", "paddlepaddle"] = Field(
-        ...,
-        description="OCR backend to use"
-    )
-
-
 class MarkerConfig(BaseModel):
     """Marker parser configuration."""
     device: Literal["cpu", "cuda"] = Field(
@@ -327,19 +303,15 @@ class MarkerConfig(BaseModel):
 
 class IngestionConfig(BaseModel):
     """Document ingestion configuration."""
-    parser: Literal["docling", "marker"] = Field(
+    parser: Literal["marker"] = Field(
         ...,
-        description="Document parser to use: 'docling' or 'marker'"
+        description="Document parser to use: 'marker'"
     )
     overwrite: bool = Field(
         ...,
         description="Overwrite existing parsed files"
     )
 
-    docling: DoclingConfig = Field(
-        ...,
-        description="Docling-specific configuration"
-    )
     marker: MarkerConfig = Field(
         ...,
         description="Marker-specific configuration"
@@ -810,7 +782,7 @@ class Settings(BaseSettings):
             if value.startswith(('gemini/', 'openai/', 'anthropic/', 'huggingface/', 'ollama/')):
                 return False
             # Must contain '/' to be considered a path
-            # This avoids converting simple values like 'INFO', 'cpu', 'docling'
+            # This avoids converting simple values like 'INFO', 'cpu', 'marker'
             return '/' in value
 
         def resolve_value(value: Any) -> Any:

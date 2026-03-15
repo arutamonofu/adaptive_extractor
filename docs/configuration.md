@@ -104,14 +104,8 @@ paths:
   extractions_dir: "data/extractions"
 
 parsing:
-  parser: "docling"
+  parser: "marker"
   overwrite: false
-  docling:
-    device: "cpu"
-    num_threads: 4
-    do_ocr: true
-    do_table_structure: true
-    ocr_backend: "onnxruntime"
   marker:
     device: "cpu"
 
@@ -330,23 +324,15 @@ task:
 
 ```yaml
 parsing:
-  parser: "docling"               # Required: "docling" or "marker"
+  parser: "marker"                # Required: "marker"
   overwrite: false                # Optional: Overwrite existing parsed files (default: false)
-
-  # Docling settings
-  docling:
-    device: "cpu"                 # "cpu", "cuda", or "mps"
-    num_threads: 4                # Number of threads for processing
-    do_ocr: true                  # Enable OCR processing
-    do_table_structure: true      # Enable table structure detection
-    ocr_backend: "onnxruntime"    # "onnxruntime", "torch", "openvino", or "paddlepaddle"
 
   # Marker settings
   marker:
     device: "cpu"                 # "cpu" or "cuda"
 ```
 
-> **Note:** All fields in `parsing.docling` and `parsing.marker` are **required**. The `overwrite` field is optional (default: `false`).
+> **Note:** All fields in `parsing.marker` are **required**. The `overwrite` field is optional (default: `false`).
 
 ### Extraction Configuration
 

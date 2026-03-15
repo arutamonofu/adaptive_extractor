@@ -2,7 +2,7 @@
 
 The infrastructure layer handles external integrations including:
 - LLM providers (Ollama, OpenAI, etc.)
-- Document parsers (Docling, Marker)
+- Document parsers (Marker)
 - Storage repositories (agents, predictions, ground truth)
 - Tracking systems (MLflow)
 - Configuration management (settings, logging)

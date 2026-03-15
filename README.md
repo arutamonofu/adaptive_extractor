@@ -24,6 +24,6 @@ AutoEvoExtractor automatically extracts structured experimental data from scient
 
 - **Python:** 3.11+
 - **LLM:** Ollama (local) or OpenAI/Anthropic API
-- **Core dependencies:** dspy-ai, pydantic, pandas, mlflow, docling
+- **Core dependencies:** dspy-ai, pydantic, pandas, mlflow, marker-pdf
 
 [Full list →](pyproject.toml)

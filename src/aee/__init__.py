@@ -4,7 +4,7 @@ __version__ = "0.4.0"
 
 # Core modules
 from aee.infrastructure.config import Settings, setup_logging
-from aee.infrastructure.parsers import BaseParser, DoclingParser, MarkerParser, TextCleaner
+from aee.infrastructure.parsers import BaseParser, MarkerParser
 from aee.infrastructure.agents import UniversalExtractor
 from aee.domain.evaluation import TaskMetric, ExperimentMatcher
 from aee.infrastructure.llm import setup_student, setup_teacher, create_lm
@@ -21,9 +21,7 @@ __all__ = [
 
     # Infrastructure - Parsers
     "BaseParser",
-    "DoclingParser",
     "MarkerParser",
-    "TextCleaner",
 
     # Agents
     "UniversalExtractor",
