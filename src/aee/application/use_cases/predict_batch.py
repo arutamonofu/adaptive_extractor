@@ -150,7 +150,7 @@ class BatchPredictionUseCase:
                     prediction = self._run_extraction(agent, doc_text)
 
                     # Save extraction
-                    output_path = request.output_dir / f"{doc_id}_result.json"
+                    output_path = request.output_dir / f"{doc_id}.json"
                     self.extraction_repo.save(
                         extractions=prediction.experiments,
                         output_path=output_path,
