@@ -345,6 +345,7 @@ OllamaService_ollama_model = "qwen2.5vl:72b"
 
 try:
     import torch
+
     TORCH_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 except ImportError:
     TORCH_DEVICE = "cpu"
@@ -411,33 +412,27 @@ def get_marker_config_dict(
         "debug": DEBUG,
         "debug_print": DEBUG_PRINT,
         "disable_tqdm": DISABLE_TQDM,
-
         # OCR settings
         "force_ocr": FORCE_OCR,
         "strip_existing_ocr": STRIP_EXISTING_OCR,
         "disable_ocr": DISABLE_OCR,
         "keep_chars": KEEP_CHARS,
-
         # LLM (global)
         "use_llm": USE_LLM,
-
         # DocumentBuilder
         "lowres_image_dpi": DocumentBuilder_lowres_image_dpi,
         "highres_image_dpi": DocumentBuilder_highres_image_dpi,
-
         # LayoutBuilder
         "layout_batch_size": LayoutBuilder_layout_batch_size,
         "force_layout_block": LayoutBuilder_force_layout_block,
         "max_expand_frac": LayoutBuilder_max_expand_frac,
         "layout_detection_batch_size": LayoutBuilder_detection_batch_size,
-
         # LineBuilder
         "layout_coverage_min_lines": LineBuilder_layout_coverage_min_lines,
         "layout_coverage_threshold": LineBuilder_layout_coverage_threshold,
         "min_document_ocr_threshold": LineBuilder_min_document_ocr_threshold,
         "detection_line_min_confidence": LineBuilder_detection_line_min_confidence,
         "line_recognition_batch_size": LineBuilder_recognition_batch_size,
-
         # OcrBuilder
         "ocr_task_name": OcrBuilder_ocr_task_name,
         "disable_ocr_math": OcrBuilder_disable_ocr_math,
@@ -445,29 +440,24 @@ def get_marker_config_dict(
         "block_mode_intersection_thresh": OcrBuilder_block_mode_intersection_thresh,
         "block_mode_max_lines": OcrBuilder_block_mode_max_lines,
         "block_mode_max_height_frac": OcrBuilder_block_mode_max_height_frac,
-
         # StructureBuilder
         "gap_threshold": StructureBuilder_gap_threshold,
         "list_gap_threshold": StructureBuilder_list_gap_threshold,
-
         # EquationProcessor
         "equation_model_max_length": EquationProcessor_model_max_length,
         "equation_batch_size": EquationProcessor_equation_batch_size,
-
         # LLMEquationProcessor
         "LLMEquationProcessor_max_concurrency": LLMEquationProcessor_max_concurrency,
         "LLMEquationProcessor_image_expansion_ratio": LLMEquationProcessor_image_expansion_ratio,
         "LLMEquationProcessor_min_equation_height": LLMEquationProcessor_min_equation_height,
         "LLMEquationProcessor_redo_inline_math": REDO_INLINE_MATH,
         "LLMEquationProcessor_use_llm": USE_LLM,
-
         # LLMMathBlockProcessor
         "LLMMathBlockProcessor_max_concurrency": LLMMathBlockProcessor_max_concurrency,
         "LLMMathBlockProcessor_image_expansion_ratio": LLMMathBlockProcessor_image_expansion_ratio,
         "LLMMathBlockProcessor_redo_inline_math": REDO_INLINE_MATH,
         "LLMMathBlockProcessor_inlinemath_min_ratio": LLMMathBlockProcessor_inlinemath_min_ratio,
         "LLMMathBlockProcessor_use_llm": USE_LLM,
-
         # LLMTableProcessor
         "LLMTableProcessor_max_concurrency": LLMTableProcessor_max_concurrency,
         "LLMTableProcessor_image_expansion_ratio": LLMTableProcessor_image_expansion_ratio,
@@ -477,34 +467,37 @@ def get_marker_config_dict(
         "LLMTableProcessor_rotation_max_wh_ratio": LLMTableProcessor_rotation_max_wh_ratio,
         "LLMTableProcessor_max_table_iterations": LLMTableProcessor_max_table_iterations,
         "LLMTableProcessor_use_llm": USE_LLM,
-
         # LLMTableMergeProcessor
         "LLMTableMergeProcessor_max_concurrency": LLMTableMergeProcessor_max_concurrency,
         "LLMTableMergeProcessor_image_expansion_ratio": LLMTableMergeProcessor_image_expansion_ratio,
         "LLMTableMergeProcessor_table_height_threshold": LLMTableMergeProcessor_table_height_threshold,
         "LLMTableMergeProcessor_table_start_threshold": LLMTableMergeProcessor_table_start_threshold,
         "LLMTableMergeProcessor_vertical_table_height_threshold": LLMTableMergeProcessor_vertical_table_height_threshold,
-        "LLMTableMergeProcessor_vertical_table_distance_threshold": LLMTableMergeProcessor_vertical_table_distance_threshold,
-        "LLMTableMergeProcessor_horizontal_table_width_threshold": LLMTableMergeProcessor_horizontal_table_width_threshold,
-        "LLMTableMergeProcessor_horizontal_table_distance_threshold": LLMTableMergeProcessor_horizontal_table_distance_threshold,
+        "LLMTableMergeProcessor_vertical_table_distance_threshold": (
+            LLMTableMergeProcessor_vertical_table_distance_threshold
+        ),
+        "LLMTableMergeProcessor_horizontal_table_width_threshold": (
+            LLMTableMergeProcessor_horizontal_table_width_threshold
+        ),
+        "LLMTableMergeProcessor_horizontal_table_distance_threshold": (
+            LLMTableMergeProcessor_horizontal_table_distance_threshold
+        ),
         "LLMTableMergeProcessor_column_gap_threshold": LLMTableMergeProcessor_column_gap_threshold,
-        "LLMTableMergeProcessor_no_merge_tables_across_pages": LLMTableMergeProcessor_no_merge_tables_across_pages,
+        "LLMTableMergeProcessor_no_merge_tables_across_pages": (
+            LLMTableMergeProcessor_no_merge_tables_across_pages
+        ),
         "LLMTableMergeProcessor_use_llm": USE_LLM,
-
         # LLMPageCorrectionProcessor (commented out by default)
         # "LLMPageCorrectionProcessor_max_concurrency": LLMPageCorrectionProcessor_max_concurrency,
         # "LLMPageCorrectionProcessor_image_expansion_ratio": LLMPageCorrectionProcessor_image_expansion_ratio,
         # "LLMPageCorrectionProcessor_block_correction_prompt": LLMPageCorrectionProcessor_block_correction_prompt,
         # "LLMPageCorrectionProcessor_use_llm": True,
-
         # TableProcessor
         "table_row_split_threshold": TableProcessor_row_split_threshold,
         "table_pdftext_workers": TableProcessor_pdftext_workers,
         "drop_repeated_table_text": TableProcessor_drop_repeated_table_text,
-
         # DocumentProvider
         "disable_links": DISABLE_LINKS,
-
         # MarkdownRenderer
         "extract_images": not DISABLE_IMAGE_EXTRACTION,
         "page_separator": MarkdownRenderer_page_separator,
@@ -516,7 +509,9 @@ def get_marker_config_dict(
 
     # Inject Ollama service parameters
     if LLM_SERVICE == "ollama":
-        config_dict["ollama_base_url"] = ollama_base_url or OllamaService_ollama_base_url
+        config_dict["ollama_base_url"] = (
+            ollama_base_url or OllamaService_ollama_base_url
+        )
         config_dict["ollama_model"] = ollama_model or OllamaService_ollama_model
         config_dict["llm_service"] = "marker.services.ollama.OllamaService"
 

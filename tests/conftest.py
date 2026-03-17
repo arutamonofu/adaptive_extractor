@@ -20,6 +20,7 @@ TEST_DATA_DIR = Path(__file__).parent / "data"
 # Task Configuration Fixtures
 # ============================================================================
 
+
 @pytest.fixture(scope="module")
 def nanozyme_task(tmp_nanozymes_task_yaml: Path, nanozyme_test_instruction_path: Path):
     """Get nanozyme task components.
@@ -56,8 +57,10 @@ def nanozyme_task(tmp_nanozymes_task_yaml: Path, nanozyme_test_instruction_path:
         if "signature" not in _signature_cache:
             # For tests that need signature, use the test instruction file
             _signature_cache["signature"] = create_signature(
-                config, experiment_model, output_model,
-                instruction=config.get_instruction()
+                config,
+                experiment_model,
+                output_model,
+                instruction=config.get_instruction(),
             )
         return _signature_cache["signature"]
 
@@ -96,6 +99,7 @@ def task_config_dict() -> Dict[str, Any]:
 # ============================================================================
 # Ground Truth Data Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def sample_gt_csv(tmp_path: Path) -> Path:
@@ -185,6 +189,7 @@ def nanozyme_output(nanozyme_task, nanozyme_experiments):
 # Data Split Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def sample_splits_json(tmp_path: Path) -> Path:
     """Create a sample splits JSON file.
@@ -222,6 +227,7 @@ def sample_splits_dict() -> Dict[str, List[str]]:
 # ============================================================================
 # Agent Storage Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def tmp_agents_dir(tmp_path: Path) -> Path:
@@ -280,6 +286,7 @@ def sample_agent_metadata() -> Dict[str, Any]:
 # Document Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def sample_parsed_document(tmp_path: Path) -> Path:
     """Create a sample parsed document Markdown file.
@@ -301,6 +308,7 @@ def sample_parsed_document(tmp_path: Path) -> Path:
 # ============================================================================
 # Mock LLM Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def mock_llm_response():
@@ -329,6 +337,7 @@ def mock_llm_response():
 # ============================================================================
 # Utility Fixtures
 # ============================================================================
+
 
 @pytest.fixture(autouse=True)
 def reset_task_registry():
@@ -374,6 +383,7 @@ def cleanup_temp_files():
 # ============================================================================
 # Comparison Data Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def matched_pairs_data(nanozyme_task):
@@ -476,13 +486,16 @@ def minimal_config_with_custom_paths(tmp_path: Path, minimal_config_path: Path) 
         Path to copied config file.
     """
     import shutil
+
     config_copy = tmp_path / "config.yaml"
     shutil.copy(minimal_config_path, config_copy)
     return config_copy
 
 
 @pytest.fixture
-def config_with_instruction_file(tmp_path: Path, llm_config_template_path: Path) -> Path:
+def config_with_instruction_file(
+    tmp_path: Path, llm_config_template_path: Path
+) -> Path:
     """Create config with resolved instruction file path.
 
     Args:
@@ -500,7 +513,9 @@ def config_with_instruction_file(tmp_path: Path, llm_config_template_path: Path)
 
     # Load template
     config_content = llm_config_template_path.read_text(encoding="utf-8")
-    config_content = config_content.replace("${INSTRUCTION_FILE_PATH}", str(instruction_file))
+    config_content = config_content.replace(
+        "${INSTRUCTION_FILE_PATH}", str(instruction_file)
+    )
 
     # Save resolved config
     config_file = tmp_path / "config.yaml"
@@ -548,7 +563,9 @@ def tmp_instruction_file(tmp_path: Path) -> Path:
     Returns:
         Path to created instruction file.
     """
-    instruction_file = tmp_path / "config" / "initial_instructions" / "test_instruction.txt"
+    instruction_file = (
+        tmp_path / "config" / "initial_instructions" / "test_instruction.txt"
+    )
     instruction_file.parent.mkdir(parents=True, exist_ok=True)
     instruction_file.write_text(
         "Extract structured data from scientific documents. "
@@ -665,6 +682,7 @@ circuit_breaker:
 # Task Configuration File Fixtures
 # ============================================================================
 
+
 @pytest.fixture(scope="session")
 def tmp_nanozymes_task_yaml(tmp_path_factory) -> Path:
     """Generate a temporary nanozymes task YAML file for tests.
@@ -681,7 +699,7 @@ def tmp_nanozymes_task_yaml(tmp_path_factory) -> Path:
     tmp_path = tmp_path_factory.mktemp("config")
     tasks_dir = tmp_path / "config" / "tasks"
     tasks_dir.mkdir(parents=True, exist_ok=True)
-    
+
     yaml_content = """
 name: nanozymes
 
@@ -891,7 +909,7 @@ row_converter:
   ccat_unit:
     - ccat_unit
 """
-    
+
     yaml_path = tasks_dir / "nanozymes.yaml"
     yaml_path.write_text(yaml_content, encoding="utf-8")
     return yaml_path
@@ -913,7 +931,7 @@ def tmp_example_system_yaml(tmp_path_factory) -> Path:
     tmp_path = tmp_path_factory.mktemp("systems")
     systems_dir = tmp_path / "config" / "systems"
     systems_dir.mkdir(parents=True, exist_ok=True)
-    
+
     yaml_content = """
 project:
   log_level: "INFO"
@@ -1011,7 +1029,7 @@ circuit_breaker:
   reset_timeout: 30.0
   half_open_max_calls: 1
 """
-    
+
     yaml_path = systems_dir / "example.yaml"
     yaml_path.write_text(yaml_content, encoding="utf-8")
     return yaml_path

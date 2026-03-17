@@ -144,7 +144,9 @@ class BatchPredictionUseCase:
                         continue
 
                     # Log progress before extraction
-                    logger.info(f"[{idx+1}/{len(request.document_ids)}] Processing document: {doc_id}")
+                    logger.info(
+                        f"[{idx + 1}/{len(request.document_ids)}] Processing document: {doc_id}"
+                    )
 
                     # Run extraction
                     prediction = self._run_extraction(agent, doc_text)
@@ -160,14 +162,22 @@ class BatchPredictionUseCase:
                     )
 
                     stats["success"] += 1
-                    logger.debug(f"[{idx+1}/{len(request.document_ids)}] Completed {doc_id}: {len(prediction.experiments)} experiments")
+                    logger.debug(
+                        f"[{idx + 1}/{len(request.document_ids)}] Completed {doc_id}: "
+                        f"{len(prediction.experiments)} experiments"
+                    )
 
                 except CircuitBreakerError as e:
-                    logger.error(f"[{idx+1}/{len(request.document_ids)}] Circuit breaker OPEN for {doc_id}: {e}. Stopping batch processing.")
+                    logger.error(
+                        f"[{idx + 1}/{len(request.document_ids)}] Circuit breaker OPEN for {doc_id}: "
+                        f"{e}. Stopping batch processing."
+                    )
                     stats["failed"] += 1
                     break
                 except Exception as e:
-                    logger.error(f"[{idx+1}/{len(request.document_ids)}] Failed to process {doc_id}: {e}")
+                    logger.error(
+                        f"[{idx + 1}/{len(request.document_ids)}] Failed to process {doc_id}: {e}"
+                    )
                     stats["failed"] += 1
                     continue
 

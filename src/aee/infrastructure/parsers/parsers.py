@@ -155,7 +155,10 @@ class MarkerParser(BaseParser):
 
         logger.info(f"Initializing Marker on {torch_device}...")
         logger.info(f"LLM enabled: {config_dict.get('use_llm', False)}")
-        logger.info(f"OCR settings: force_ocr={config_dict.get('force_ocr')}, strip_existing_ocr={config_dict.get('strip_existing_ocr')}")
+        logger.info(
+            f"OCR settings: force_ocr={config_dict.get('force_ocr')}, "
+            f"strip_existing_ocr={config_dict.get('strip_existing_ocr')}"
+        )
 
         # Create config parser and converter
         config_parser = ConfigParser(config_dict)
@@ -165,7 +168,9 @@ class MarkerParser(BaseParser):
             config=config_parser.generate_config_dict(),
             processor_list=get_custom_processors(),
             renderer=config_parser.get_renderer(),
-            llm_service=config_parser.get_llm_service() if config_dict.get("use_llm") else None,
+            llm_service=config_parser.get_llm_service()
+            if config_dict.get("use_llm")
+            else None,
         )
 
     def parse(self, file_path: Union[str, Path]) -> str:
@@ -188,9 +193,9 @@ class MarkerParser(BaseParser):
 
             # Extract text content with fallback chain
             text = (
-                getattr(rendered, "markdown", None) or
-                getattr(rendered, "text", None) or
-                str(rendered)
+                getattr(rendered, "markdown", None)
+                or getattr(rendered, "text", None)
+                or str(rendered)
             )
 
             return text
@@ -214,24 +219,24 @@ class GeminiParser(BaseParser):
         """
         if config is None:
             raise ValueError("Configuration object is required for GeminiParser")
-        
+
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
             raise ValueError(
                 "GEMINI_API_KEY environment variable must be set in .env file. "
                 "Add 'GEMINI_API_KEY=your_key' to your .env file."
             )
-        
+
         self.cfg = config
         self.api_key = api_key
-        
+
         # Import here to avoid dependency when not using Gemini
         from google import genai
         from google.genai import types
-        
+
         self.client = genai.Client()
         self.types = types
-        
+
         logger.info(f"Initializing Gemini parser with model: {self.cfg.model_name}")
 
     def parse(self, file_path: Union[str, Path]) -> str:
@@ -247,12 +252,12 @@ class GeminiParser(BaseParser):
             Exception: If parsing fails.
         """
         from google.genai import types
-        
+
         path = Path(file_path)
         logger.info(f"Gemini processing: {path.name}")
-        
+
         uploaded_file = None
-        
+
         try:
             # Upload file to Google servers
             logger.info("Uploading file to Google server...")
@@ -260,7 +265,10 @@ class GeminiParser(BaseParser):
 
             # Wait for file processing
             logger.info("Waiting for file to be ready...")
-            while uploaded_file.state is not None and uploaded_file.state.name == "PROCESSING":
+            while (
+                uploaded_file.state is not None
+                and uploaded_file.state.name == "PROCESSING"
+            ):
                 logger.info(".")
                 time.sleep(3)
                 if uploaded_file.name is None:
@@ -271,54 +279,54 @@ class GeminiParser(BaseParser):
                 raise RuntimeError(
                     f"Failed to process file {path.name} on Google server"
                 )
-            
+
             # Generate Markdown content using streaming
             logger.info("Generating Markdown (streaming mode)...")
-            
+
             # Build safety settings
             safety_settings = []
             if self.cfg.safety_settings:
                 safety_settings = [
                     types.SafetySetting(
                         category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-                        threshold=types.HarmBlockThreshold.BLOCK_NONE
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
                     ),
                     types.SafetySetting(
                         category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-                        threshold=types.HarmBlockThreshold.BLOCK_NONE
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
                     ),
                     types.SafetySetting(
                         category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-                        threshold=types.HarmBlockThreshold.BLOCK_NONE
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
                     ),
                     types.SafetySetting(
                         category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-                        threshold=types.HarmBlockThreshold.BLOCK_NONE
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
                     ),
                 ]
-            
+
             response_stream = self.client.models.generate_content_stream(
                 model=self.cfg.model_name,
                 contents=[uploaded_file, GEMINI_PDF_TO_MD_PROMPT],  # type: ignore[arg-type]
                 config=types.GenerateContentConfig(
                     safety_settings=safety_settings,
                     temperature=0.1,
-                )
+                ),
             )
-            
+
             # Stream response to string
             markdown_content = []
             for chunk in response_stream:
                 if chunk.text:
                     markdown_content.append(chunk.text)
-            
+
             result = "".join(markdown_content)
-            
+
             if not result:
                 logger.warning(f"Gemini returned empty response for {path.name}")
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Gemini parsing failed for {path.name}: {str(e)}")
             raise
@@ -355,16 +363,15 @@ def get_parser(parser_name: str, config: Any = None) -> BaseParser:
                 f"MarkerParser requires MarkerConfig, got {type(config).__name__}"
             )
         return MarkerParser(config)
-    
+
     elif parser_name == "gemini":
         if config is None or not isinstance(config, GeminiParserConfig):
             raise ValueError(
                 f"GeminiParser requires GeminiParserConfig, got {type(config).__name__}"
             )
         return GeminiParser(config)
-    
+
     else:
         raise ValueError(
-            f"Unknown parser: {parser_name}. "
-            f"Available parsers: 'marker', 'gemini'"
+            f"Unknown parser: {parser_name}. Available parsers: 'marker', 'gemini'"
         )
