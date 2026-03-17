@@ -70,7 +70,7 @@ def load_settings_for_environment(
         env = get_environment()
 
     # Load environment-specific config (no fallback)
-    base_dir = Path(__file__).resolve().parent.parent.parent.parent
+    base_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
     env_config_path = base_dir / "config" / f"{env.value}.yaml"
 
     return Settings.load(config_path=env_config_path)
