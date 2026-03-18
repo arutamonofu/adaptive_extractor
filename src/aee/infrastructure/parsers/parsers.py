@@ -240,7 +240,7 @@ class GeminiParser(BaseParser):
         logger.info(f"Initializing Gemini parser with model: {self.cfg.model_name}")
 
     def parse(self, file_path: Union[str, Path]) -> str:
-        """Parse a PDF file using Gemini API.
+        """Parse a PDF file using Gemini API with retry logic for network errors.
 
         Args:
             file_path: Path to the PDF file.
@@ -249,12 +249,42 @@ class GeminiParser(BaseParser):
             str: Markdown text content.
 
         Raises:
-            Exception: If parsing fails.
+            Exception: If parsing fails after all retry attempts.
+        """
+        path = Path(file_path)
+
+        # Retry loop for network errors
+        for attempt in range(self.cfg.max_retries):
+            try:
+                logger.info(f"Gemini processing: {path.name} (attempt {attempt + 1}/{self.cfg.max_retries})")
+                return self._do_parse(path)
+            except Exception as e:
+                error_msg = str(e)
+                # Check if this is a retryable network error
+                retryable_errors = ["disconnected", "connection", "timeout", "network", "503", "504"]
+                is_retryable = any(err in error_msg.lower() for err in retryable_errors)
+
+                if attempt < self.cfg.max_retries - 1 and is_retryable:
+                    delay = 10.0 * (attempt + 1)  # Progressive delay: 10s, 20s, 30s
+                    logger.warning(
+                        f"Network error for {path.name}: {error_msg}. "
+                        f"Retrying in {delay}s... ({attempt + 1}/{self.cfg.max_retries})"
+                    )
+                    time.sleep(delay)
+                else:
+                    logger.error(f"Gemini parsing failed for {path.name} after {attempt + 1} attempts: {error_msg}")
+                    raise
+
+    def _do_parse(self, path: Path) -> str:
+        """Internal method to perform actual Gemini parsing.
+
+        Args:
+            path: Path to the PDF file.
+
+        Returns:
+            str: Markdown text content.
         """
         from google.genai import types
-
-        path = Path(file_path)
-        logger.info(f"Gemini processing: {path.name}")
 
         uploaded_file = None
 
@@ -327,9 +357,6 @@ class GeminiParser(BaseParser):
 
             return result
 
-        except Exception as e:
-            logger.error(f"Gemini parsing failed for {path.name}: {str(e)}")
-            raise
         finally:
             # Clean up uploaded file
             if uploaded_file and uploaded_file.name:

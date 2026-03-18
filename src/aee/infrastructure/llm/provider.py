@@ -483,17 +483,25 @@ def create_lm(
         if config.non_ollama.api_key is None:
             raise ValueError(
                 "API key must be set for non-Ollama providers. "
-                "Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY in .env file."
+                "Set OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY in .env file."
             )
 
         api_key = config.non_ollama.api_key.get_secret_value()
-        lm = dspy.LM(
-            model=config.model,
-            api_key=api_key,
-            temperature=config.temperature,
-            max_tokens=config.non_ollama.max_tokens,
-            cache=use_cache
-        )
+
+        # Build LM kwargs
+        lm_kwargs = {
+            "model": config.model,
+            "api_key": api_key,
+            "temperature": config.temperature,
+            "max_tokens": config.non_ollama.max_tokens,
+            "cache": use_cache,
+        }
+
+        # Add custom base_url if specified (for OpenRouter, vLLM, etc.)
+        if config.non_ollama.base_url:
+            lm_kwargs["api_base"] = config.non_ollama.base_url
+
+        lm = dspy.LM(**lm_kwargs)
 
     # Apply rate limiting if configured
     if config.rate_limit_delay > 0:

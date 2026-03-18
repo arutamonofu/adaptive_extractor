@@ -192,9 +192,11 @@ class NonOllamaConfig(BaseModel):
         OPENAI_API_KEY: OpenAI API key (required when use_ollama=False)
         ANTHROPIC_API_KEY: Anthropic API key (required when use_ollama=False)
         GEMINI_API_KEY: Google Gemini API key (required when use_ollama=False)
+        OPENROUTER_API_KEY: OpenRouter API key (required when use_ollama=False)
 
     YAML configuration (config/default.yaml):
         max_tokens: Maximum tokens for non-Ollama providers
+        base_url: Custom API base URL (optional, for OpenRouter or compatible endpoints)
 
     Note: API key must be set via environment variable. Validation will fail
         if api_key is not provided.
@@ -209,6 +211,10 @@ class NonOllamaConfig(BaseModel):
     max_tokens: int = Field(
         ...,
         description="Maximum tokens for non-Ollama providers"
+    )
+    base_url: Optional[str] = Field(
+        default=None,
+        description="Custom API base URL (e.g., https://openrouter.ai/api/v1 for OpenRouter)"
     )
 
     @field_validator("api_key", mode="after")
@@ -276,7 +282,7 @@ class LLMInstanceConfig(BaseModel):
             if self.non_ollama.api_key is None:
                 raise ValueError(
                     "API key must be set for non-Ollama providers. "
-                    "Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY in .env file."
+                    "Set OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY in .env file."
                 )
         return self
 
@@ -321,6 +327,14 @@ class GeminiParserConfig(BaseModel):
     safety_settings: bool = Field(
         default=True,
         description="Enable safety settings for Gemini API"
+    )
+    request_delay: float = Field(
+        default=10.0,
+        description="Delay between file requests to avoid rate limiting"
+    )
+    max_retries: int = Field(
+        default=3,
+        description="Maximum retry attempts for network errors"
     )
 
 
@@ -566,6 +580,10 @@ class Settings(BaseSettings):
         default=None,
         description="Anthropic API key (from ANTHROPIC_API_KEY env var)"
     )
+    openrouter_api_key: Optional[SecretStr] = Field(
+        default=None,
+        description="OpenRouter API key (from OPENROUTER_API_KEY env var)"
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -705,6 +723,7 @@ class Settings(BaseSettings):
             - OPENAI_API_KEY: OpenAI API key
             - ANTHROPIC_API_KEY: Anthropic API key
             - GEMINI_API_KEY: Google Gemini API key
+            - OPENROUTER_API_KEY: OpenRouter API key
 
         Args:
             config_data: Configuration dictionary to update.
@@ -712,18 +731,26 @@ class Settings(BaseSettings):
         openai_key = os.getenv("OPENAI_API_KEY")
         anthropic_key = os.getenv("ANTHROPIC_API_KEY")
         gemini_key = os.getenv("GEMINI_API_KEY")
+        openrouter_key = os.getenv("OPENROUTER_API_KEY")
 
         # DEBUG: Log which API keys are found
         logger.debug(f"API keys from env - OpenAI: {'SET' if openai_key else 'NOT SET'}, "
                      f"Anthropic: {'SET' if anthropic_key else 'NOT SET'}, "
-                     f"Gemini: {'SET' if gemini_key else 'NOT SET'}")
+                     f"Gemini: {'SET' if gemini_key else 'NOT SET'}, "
+                     f"OpenRouter: {'SET' if openrouter_key else 'NOT SET'}")
 
-        # Use the first available API key (priority: OpenAI > Anthropic > Gemini)
-        api_key = openai_key or anthropic_key or gemini_key
+        # Use the first available API key
+        # Priority: OpenAI > Anthropic > Gemini > OpenRouter
+        api_key = openai_key or anthropic_key or gemini_key or openrouter_key
 
         # DEBUG: Log which API key will be used
         if api_key:
-            key_source = "OpenAI" if api_key == openai_key else ("Anthropic" if api_key == anthropic_key else "Gemini")
+            key_source = (
+                "OpenAI" if api_key == openai_key
+                else "Anthropic" if api_key == anthropic_key
+                else "Gemini" if api_key == gemini_key
+                else "OpenRouter"
+            )
             key_preview = f"{api_key[:8]}..." if api_key else "NONE"
             logger.info(f"Using {key_source} API key: {key_preview}")
 
@@ -829,9 +856,12 @@ class Settings(BaseSettings):
             """Check if a string looks like a file path."""
             if not value:
                 return False
+            # Exclude URLs (http://, https://)
+            if value.startswith(('http://', 'https://')):
+                return False
             # Exclude known model name patterns (provider/model-name format)
             # to prevent 'gemini/gemini-2.0-flash' from being treated as a path
-            if value.startswith(('gemini/', 'openai/', 'anthropic/', 'huggingface/', 'ollama/')):
+            if value.startswith(('gemini/', 'openai/', 'anthropic/', 'huggingface/', 'ollama/', 'openrouter/')):
                 return False
             # Must contain '/' to be considered a path
             # This avoids converting simple values like 'INFO', 'cpu', 'marker'

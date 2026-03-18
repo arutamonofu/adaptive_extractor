@@ -23,6 +23,7 @@ llm:
       stream: true
     non_ollama:
       max_tokens: 4096
+      # base_url: "https://openrouter.ai/api/v1"
 
   teacher:
     use_ollama: true
@@ -43,22 +44,20 @@ llm:
       stream: true
     non_ollama:
       max_tokens: 8192
+      # base_url: "https://openrouter.ai/api/v1"
 
 parsing:
-  parser: "marker"  # Options: "marker" (local) or "gemini" (API)
+  parser: "gemini"  # Options: "marker" (local) or "gemini" (API)
   overwrite: false
 
   # Note: Detailed Marker settings (~70 parameters) are defined in code
   # at src/aee/infrastructure/parsers/marker_config.py
-  # This section is kept for backward compatibility but is now optional.
-  # marker:
-  #   (no settings required - all configured in marker_config.py)
 
   # Gemini settings (required if parser: gemini)
-  # gemini:
-  #   model_name: "gemini-3-flash-preview"
-  #   upload_timeout: 300
-  #   safety_settings: true
+  gemini:
+    model_name: "gemini-3-flash-preview"
+    upload_timeout: 300
+    safety_settings: true
 
 paths:
   pdf_dir: "data/pdf"

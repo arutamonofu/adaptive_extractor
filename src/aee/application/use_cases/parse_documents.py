@@ -5,6 +5,7 @@ for downstream processing.
 """
 
 import logging
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, List, Optional
@@ -115,7 +116,7 @@ class ParseDocumentsUseCase:
                 "total": len(request.input_paths),
             }
 
-            for pdf_path in request.input_paths:
+            for i, pdf_path in enumerate(request.input_paths):
                 try:
                     # Generate output path
                     output_path = request.output_dir / f"{pdf_path.stem}.md"
@@ -126,6 +127,10 @@ class ParseDocumentsUseCase:
                         stats["skipped"] += 1
                         stats["success"] += 1  # Count as success
                         continue
+
+                    # Delay between requests to avoid rate limiting (only for actual parsing)
+                    if i > 0 and request.parser_config and hasattr(request.parser_config, "request_delay"):
+                        time.sleep(request.parser_config.request_delay)
 
                     # Parse document
                     logger.info(f"Parsing: {pdf_path.name}")

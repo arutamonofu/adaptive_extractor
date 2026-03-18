@@ -279,10 +279,12 @@ LLMPageCorrectionProcessor_max_concurrency = 1
 LLMPageCorrectionProcessor_image_expansion_ratio = 0.03
 """Ratio to expand page correction images."""
 
-LLMPageCorrectionProcessor_block_correction_prompt = """You are a strict data-extraction formatter. Your ONLY job is to fix OCR errors in scientific text.
+LLMPageCorrectionProcessor_block_correction_prompt = """\
+You are a strict data-extraction formatter. Your ONLY job is to fix OCR errors in scientific text.
 CRITICAL RULES:
 1) Precisely fix scientific notation (e.g., convert '105' to '$10^5$' if context implies math).
-2) Precisely format chemical formulas and parameters with proper LaTeX subscripts/superscripts (e.g., '$H_2O_2$', '$K^{app}_m$').
+2) Precisely format chemical formulas and parameters with proper LaTeX subscripts/superscripts \
+(e.g., '$H_2O_2$', '$K^{app}_m$').
 3) Fix words broken by hyphens across lines.
 4) DO NOT output conversational filler like 'Here is the corrected text'.
 5) DO NOT add, infer, or summarize any scientific data. Output only the corrected raw text.

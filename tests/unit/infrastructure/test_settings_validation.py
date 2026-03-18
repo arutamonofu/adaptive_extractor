@@ -18,6 +18,7 @@ def clear_env():
         "OPENAI_API_KEY",
         "ANTHROPIC_API_KEY",
         "GEMINI_API_KEY",
+        "OPENROUTER_API_KEY",
     ]
 
     # Save original values
@@ -571,7 +572,99 @@ optimization:
   verbose: false
 task:
   name: "test"
-  initial_instruction_file: "config/initial_instructions/test.txt"
+  initial_instruction_file: "{instruction_file}"
+  evaluation:
+    compare_fields: []
+    float_tolerance: 0.05
+extraction:
+  enable_cache: false
+cache:
+  disk_size_limit_bytes: 1000000
+  memory_max_entries: 100
+circuit_breaker:
+  failure_threshold: 5
+  reset_timeout: 30.0
+  half_open_max_calls: 1
+""")
+
+        # Create initial instruction file
+        instruction_file = tmp_path / "config" / "initial_instructions" / "test.txt"
+        instruction_file.parent.mkdir(parents=True, exist_ok=True)
+        instruction_file.write_text("Test instruction")
+
+        config_file = tmp_path / "test_config.yaml"
+        config_file.write_text(f"""
+project:
+  log_level: INFO
+llm:
+  student:
+    use_ollama: false
+    model: "gpt-4"
+    timeout: 60
+    max_retries: 3
+    temperature: 0.0
+    rate_limit_delay: 1.0
+    top_p: 0.1
+    repeat_penalty: 1.2
+    repeat_last_n: 2048
+    enable_cache: true
+    ollama:
+      num_ctx: 4096
+      num_predict: 1024
+      stream: false
+      repeat_penalty: 1.1
+      repeat_last_n: 512
+    non_ollama:
+      max_tokens: 4096
+  teacher:
+    use_ollama: false
+    model: "gpt-4"
+    timeout: 60
+    max_retries: 3
+    temperature: 0.5
+    rate_limit_delay: 1.0
+    top_p: 0.9
+    repeat_penalty: 1.1
+    repeat_last_n: 512
+    enable_cache: true
+    ollama:
+      num_ctx: 4096
+      num_predict: 1024
+      stream: false
+      repeat_penalty: 1.1
+      repeat_last_n: 512
+    non_ollama:
+      max_tokens: 4096
+paths:
+  pdf_dir: "data/pdf"
+  parsed_dir: "data/parsed"
+  ground_truth_dir: "data/ground_truth"
+  splits_file: "data/splits.json"
+  agents_dir: "data/agents"
+  extractions_dir: "data/extractions"
+parsing:
+  parser: "marker"
+  overwrite: false
+  marker:
+    device: "cpu"
+optimization:
+  total_load: 10
+  train_split: 5
+  num_candidates: 5
+  num_trials: 10
+  max_bootstrapped_demos: 1
+  max_labeled_demos: 1
+  minibatch: false
+  minibatch_size: 5
+  view_data_batch_size: 2
+  metric_threshold: 1.0
+  init_temperature: 0.5
+  random_seed: 42
+  use_cache: true
+  verbose: false
+task:
+  name: "test"
+  initial_instruction_file: "{instruction_file}"
   evaluation:
     compare_fields: []
     float_tolerance: 0.05
