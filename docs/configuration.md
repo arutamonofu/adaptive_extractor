@@ -264,6 +264,9 @@ optimization:
   random_seed: 42               # Random seed for reproducibility
   use_cache: true               # Cache during optimization
   verbose: true                 # Enable verbose logging during optimization
+  max_errors: 5                 # Max errors before stopping optimization
+  save_llm_history: true        # Save LLM call histories after optimization
+  llm_history_dir: "logs/llm_history"  # Directory for history JSON files
 ```
 
 > **Note:** All fields in the `optimization` section are **required**.

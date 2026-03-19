@@ -15,6 +15,7 @@ from aee.application.services import AgentManager, DatasetBuilder, ExperimentTra
 from aee.application.use_cases import OptimizeAgentRequest, OptimizeAgentUseCase
 from aee.domain.tasks import load_task_with_instruction
 from aee.infrastructure.config.settings import Settings
+from aee.infrastructure.llm.history_logger import save_optimization_history
 from aee.infrastructure.storage import (
     AgentRepository,
     DocumentRepository,
@@ -160,6 +161,8 @@ def optimize_command(argv: Optional[List[str]] = None) -> int:
     # Setup logging with custom settings
     setup_logging(custom_settings)
 
+    student_lm, teacher_lm = None, None
+
     try:
         # Load task definition with instruction
         task_name = custom_settings.task.name
@@ -300,6 +303,13 @@ def optimize_command(argv: Optional[List[str]] = None) -> int:
     except Exception as e:
         logger.error(f"Optimization error: {e}", exc_info=True)
         return 1
+
+    finally:
+        # Save LLM histories (always, even on error/interrupt)
+        if custom_settings.optimization.save_llm_history:
+            if student_lm is not None:
+                history_dir = Path(custom_settings.optimization.llm_history_dir)
+                save_optimization_history(student_lm, teacher_lm, history_dir)
 
 
 def main():

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class OllamaLM(dspy.LM):
     """Custom LLM provider for Ollama with circuit breaker protection."""
 
-    MAX_HISTORY = 100  # Keep only last N interactions to save RAM
+    MAX_HISTORY = 200  # Keep only last N interactions to save RAM
 
     def __init__(
         self,

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "autoevoextractor"
 version = "0.4.0"
 description = "Evolutionary self-optimizing system for scientific data extraction"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     # LLM Framework
     "dspy-ai>=2.4.4,<4.0.0",

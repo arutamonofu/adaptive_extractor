@@ -436,6 +436,14 @@ class OptimizationConfig(BaseModel):
             "more faults during trials."
         )
     )
+    save_llm_history: bool = Field(
+        default=True,
+        description="Save LLM call histories after optimization"
+    )
+    llm_history_dir: str = Field(
+        default="logs/llm_history",
+        description="Directory for LLM history files"
+    )
 
 
 class EvaluationConfig(BaseModel):
@@ -765,7 +773,7 @@ class Settings(BaseSettings):
             """Get API key based on base_url pattern matching."""
             if not base_url:
                 return None
-            
+
             base_url_lower = base_url.lower()
             for pattern, api_key in BASE_URL_TO_KEY.items():
                 if pattern in base_url_lower:
@@ -776,9 +784,9 @@ class Settings(BaseSettings):
             """Get API key based on model name prefix or priority order."""
             if not model_name:
                 return None
-            
+
             model_lower = model_name.lower()
-            
+
             # Check model name prefix
             if model_lower.startswith("openai/"):
                 return openai_key
@@ -790,7 +798,7 @@ class Settings(BaseSettings):
                 return openrouter_key
             elif model_lower.startswith("huggingface/"):
                 return os.getenv("HUGGINGFACE_API_KEY")
-            
+
             # Fallback to priority order for models without prefix
             return openai_key or anthropic_key or gemini_key or openrouter_key
 
@@ -798,23 +806,23 @@ class Settings(BaseSettings):
             """Apply API key to a single LLM component (student or teacher)."""
             if component_data.get("use_ollama", True):
                 return  # Skip Ollama models
-            
+
             model_name = component_data.get("model", "")
             non_ollama_config = component_data.get("non_ollama", {})
             base_url = non_ollama_config.get("base_url")
-            
+
             # Priority 1: Try to get API key from base_url
             api_key = get_api_key_from_base_url(base_url)
-            
+
             # Priority 2: Try model name prefix
             if api_key is None:
                 api_key = get_api_key_for_model(model_name)
-            
+
             if api_key:
                 if "non_ollama" not in component_data:
                     component_data["non_ollama"] = {}
                 component_data["non_ollama"]["api_key"] = api_key
-                
+
                 # Determine key source for logging
                 key_source = "Unknown"
                 if api_key == openai_key:
@@ -827,7 +835,7 @@ class Settings(BaseSettings):
                     key_source = "OpenRouter"
                 else:
                     key_source = "HuggingFace"
-                
+
                 source_info = f"base_url: {base_url}" if base_url else f"model prefix: {model_name}"
                 logger.info(f"Using {key_source} API key for {component_name}: {model_name} ({source_info})")
             else:
