@@ -89,6 +89,24 @@ class DataValidator:
         self.split_repo = split_repo or DataSplitRepository()
         logger.debug("Initialized DataValidator")
 
+    def _normalize_split_id(self, doc_id: str) -> str:
+        """Normalize a document ID from splits to match ground truth keys.
+
+        Args:
+            doc_id: Raw document ID from split.
+
+        Returns:
+            Normalized key (lowercase, no extension).
+        """
+        # Remove common file extensions
+        for ext in [".pdf", ".PDF", ".txt", ".TXT", ".doc", ".DOC", ".json", ".JSON"]:
+            if doc_id.endswith(ext):
+                doc_id = doc_id[:-len(ext)]
+                break
+
+        # Lowercase and strip whitespace
+        return doc_id.lower().strip()
+
     def _check_splits_file_exists(
         self,
         split_path: Path,
@@ -130,7 +148,9 @@ class DataValidator:
         result: ValidationResult,
     ) -> None:
         """Validate a single split."""
-        split_ids_set = set(split_ids)
+        # Normalize split IDs to match ground truth keys (lowercase, no extension)
+        normalized_split_ids = [self._normalize_split_id(doc_id) for doc_id in split_ids]
+        split_ids_set = set(normalized_split_ids)
 
         # Check for duplicates within split
         if len(split_ids) != len(split_ids_set):

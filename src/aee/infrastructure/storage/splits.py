@@ -84,7 +84,7 @@ class DataSplitRepository:
 
             # Normalize keys if requested
             if normalize_keys:
-                return set(files)
+                return {self._normalize_key(f) for f in files}
 
             logger.debug(f"Loaded {len(files)} files from '{split_name}' split")
             return set(files)

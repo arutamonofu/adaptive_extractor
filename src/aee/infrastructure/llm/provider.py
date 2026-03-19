@@ -293,6 +293,38 @@ class OllamaLM(dspy.LM):
         copy_instance.history = []
         return copy_instance
 
+    def copy(self, **kwargs):
+        """Create a copy of this LM instance sharing history with the original.
+
+        Overrides dspy.LM.copy() to preserve history across MIPROv2 instruction
+        generation rollouts. MIPROv2 creates copies with unique rollout_id for
+        each instruction candidate; sharing history ensures all LLM calls are logged.
+
+        Args:
+            **kwargs: Parameters to update in the copy (e.g., rollout_id, temperature).
+
+        Returns:
+            A new OllamaLM instance with shared history reference.
+        """
+        import copy
+
+        new_instance = copy.deepcopy(self)
+        new_instance.history = self.history  # Share history with original
+
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(new_instance, key, value)
+            if (key in self.kwargs) or (not hasattr(self, key)):
+                if value is None:
+                    new_instance.kwargs.pop(key, None)
+                else:
+                    new_instance.kwargs[key] = value
+
+        if hasattr(new_instance, "_warned_zero_temp_rollout"):
+            new_instance._warned_zero_temp_rollout = False
+
+        return new_instance
+
 
 class TeacherWrapper(dspy.Module):
     """Wrapper to use OllamaLM as teacher for MIPROv2 bootstrapping.
@@ -334,6 +366,22 @@ class TeacherWrapper(dspy.Module):
             List containing the single predictor.
         """
         return [self.prog.predict]
+
+    def __deepcopy__(self, memo):
+        """Return self to share the same teacher_lm instance.
+
+        MIPROv2 creates copies of the teacher module during optimization.
+        By returning self, we ensure all copies use the same teacher_lm,
+        so all LLM call history is collected in one place.
+
+        Args:
+            memo: Deepcopy memo dictionary.
+
+        Returns:
+            self (same instance)
+        """
+        memo[id(self)] = self
+        return self
 
 
 class RateLimiter:

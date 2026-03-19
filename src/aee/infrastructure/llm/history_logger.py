@@ -9,8 +9,36 @@ from typing import Any, Dict, Optional
 logger = logging.getLogger(__name__)
 
 
+def _clean_for_json(obj: Any) -> Any:
+    """Recursively remove non-JSON-serializable objects from data structure.
+    
+    Args:
+        obj: Object to clean (dict, list, or primitive)
+        
+    Returns:
+        Cleaned object with only JSON-serializable values
+    """
+    if isinstance(obj, dict):
+        return {
+            k: _clean_for_json(v) 
+            for k, v in obj.items() 
+            if k != 'lm'  # Skip 'lm' field
+        }
+    elif isinstance(obj, list):
+        return [_clean_for_json(item) for item in obj]
+    elif isinstance(obj, (str, int, float, bool, type(None))):
+        return obj
+    else:
+        # Convert any other type to string (e.g., OllamaLM instances)
+        return str(obj)
+
+
 def save_history(lm: Any, output_path: Path) -> int:
     """Save LLM history to JSON file.
+
+    Uses atomic write (temp file + rename) to prevent corruption
+    if the process is interrupted (e.g., KeyboardInterrupt).
+    Removes non-JSON-serializable objects (e.g., 'lm' field) from history entries.
 
     Args:
         lm: LLM instance with .history attribute
@@ -24,11 +52,23 @@ def save_history(lm: Any, output_path: Path) -> int:
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(lm.history, f, ensure_ascii=False, indent=2)
+    # Clean history: remove non-JSON-serializable fields recursively
+    clean_history = [_clean_for_json(entry) for entry in lm.history]
 
-    logger.info(f"Saved {len(lm.history)} LLM calls to {output_path}")
-    return len(lm.history)
+    # Write to temp file first, then rename atomically
+    temp_path = output_path.with_suffix('.json.tmp')
+    try:
+        with open(temp_path, 'w', encoding='utf-8') as f:
+            json.dump(clean_history, f, ensure_ascii=False, indent=2)
+        temp_path.replace(output_path)  # Atomic on POSIX
+    except Exception:
+        # Clean up temp file on error
+        if temp_path.exists():
+            temp_path.unlink()
+        raise
+
+    logger.info(f"Saved {len(clean_history)} LLM calls to {output_path}")
+    return len(clean_history)
 
 
 def save_optimization_history(

@@ -16,6 +16,7 @@ from dspy.teleprompt import MIPROv2
 from aee.application.services import AgentManager, DatasetBuilder, DataValidator, ExperimentTracker
 from aee.domain.agents.base import BaseAgent
 from aee.domain.evaluation import TaskMetric
+from aee.infrastructure.llm.history_logger import save_optimization_history
 from aee.infrastructure.llm.provider import TeacherWrapper
 from aee.infrastructure.storage import GroundTruthRepository
 from aee.shared.exceptions import UseCaseExecutionError
@@ -436,6 +437,19 @@ class OptimizeAgentUseCase:
             minibatch_size=request.minibatch_size,
             view_data_batch_size=request.view_data_batch_size,
         )
+
+        # Save LLM history after optimization
+        # teacher_lm.history now contains all calls including instruction generation
+        # (thanks to OllamaLM.copy() sharing history with original)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        history_dir = Path("logs/llm_history")
+        history_counts = save_optimization_history(
+            student_lm=request.student_lm,
+            teacher_lm=request.teacher_lm,
+            output_dir=history_dir,
+            timestamp=timestamp,
+        )
+        logger.info(f"LLM history saved: {history_counts}")
 
         return optimized_agent
 
