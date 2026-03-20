@@ -394,12 +394,28 @@ class OptimizationConfig(BaseModel):
     )
     max_bootstrapped_demos: int = Field(
         ...,
-        description="Maximum number of bootstrapped demonstrations"
+        description="Maximum number of bootstrapped demonstrations (0 for zero-shot mode)"
     )
     max_labeled_demos: int = Field(
         ...,
-        description="Maximum number of labeled demonstrations"
+        description="Maximum number of labeled demonstrations (0 for zero-shot mode)"
     )
+
+    @field_validator('max_bootstrapped_demos')
+    @classmethod
+    def validate_max_bootstrapped_demos(cls, v):
+        """Validate max_bootstrapped_demos is non-negative."""
+        if v < 0:
+            raise ValueError('max_bootstrapped_demos must be >= 0 (use 0 for zero-shot mode)')
+        return v
+
+    @field_validator('max_labeled_demos')
+    @classmethod
+    def validate_max_labeled_demos(cls, v):
+        """Validate max_labeled_demos is non-negative."""
+        if v < 0:
+            raise ValueError('max_labeled_demos must be >= 0 (use 0 for zero-shot mode)')
+        return v
     minibatch: bool = Field(
         ...,
         description="Use minibatch evaluation during optimization"
