@@ -9,7 +9,7 @@ import torch
 from aee.infrastructure.config.settings import (
     LLMInstanceConfig,
     OllamaConfig,
-    NonOllamaConfig,
+    ApiConfig,
     TransformersConfig,
 )
 from aee.infrastructure.llm.circuit_breaker import CircuitBreaker, CircuitBreakerError
@@ -42,7 +42,7 @@ def transformers_config():
             repeat_last_n=512,
             stream=False,
         ),
-        non_ollama=NonOllamaConfig(
+        api=ApiConfig(
             max_tokens=4096,
         ),
         transformers=TransformersConfig(
@@ -138,7 +138,7 @@ class TestLLMInstanceConfig:
                 stream=False,
                 ollama_base_url="http://localhost:11434",
             ),
-            non_ollama=NonOllamaConfig(max_tokens=4096),
+            api=ApiConfig(max_tokens=4096),
         )
         assert config.provider == "ollama"
 
@@ -163,7 +163,7 @@ class TestLLMInstanceConfig:
                     repeat_last_n=64,
                     stream=False,
                 ),
-                non_ollama=NonOllamaConfig(
+                api=ApiConfig(
                     max_tokens=4096,
                 ),
             )
@@ -188,7 +188,7 @@ class TestLLMInstanceConfig:
                 repeat_last_n=64,
                 stream=False,
             ),
-            non_ollama=NonOllamaConfig(max_tokens=4096),
+            api=ApiConfig(max_tokens=4096),
         )
         assert config.provider == "transformers"
 

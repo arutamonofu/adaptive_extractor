@@ -9,7 +9,7 @@ from unittest.mock import patch
 import pytest
 import responses
 
-from aee.infrastructure.config.settings import LLMInstanceConfig, NonOllamaConfig, OllamaConfig
+from aee.infrastructure.config.settings import LLMInstanceConfig, ApiConfig, OllamaConfig
 from aee.infrastructure.llm.circuit_breaker import CircuitBreaker
 from aee.infrastructure.llm.provider import (
     BaseHTTPProvider,
@@ -46,7 +46,7 @@ def ollama_config():
             stream=False,
             ollama_base_url="http://localhost:11434",
         ),
-        non_ollama=NonOllamaConfig(
+        api=ApiConfig(
             max_tokens=4096,
         ),
     )
@@ -73,7 +73,7 @@ def openrouter_config():
             repeat_last_n=512,
             stream=False,
         ),
-        non_ollama=NonOllamaConfig(
+        api=ApiConfig(
             api_key="sk-test-key",
             max_tokens=4096,
             base_url="https://openrouter.ai/api/v1",
@@ -306,7 +306,7 @@ class TestOpenRouterLM:
                     repeat_last_n=512,
                     stream=False,
                 ),
-                non_ollama=NonOllamaConfig(
+                api=ApiConfig(
                     max_tokens=4096,
                 ),
             )
@@ -413,7 +413,7 @@ class TestOpenRouterLM:
                 repeat_last_n=512,
                 stream=False,
             ),
-            non_ollama=NonOllamaConfig(
+            api=ApiConfig(
                 api_key="sk-test-key",
                 max_tokens=4096,
                 base_url="https://openrouter.ai/api/v1",
@@ -445,7 +445,7 @@ class TestOpenRouterLM:
                 repeat_last_n=512,
                 stream=False,
             ),
-            non_ollama=NonOllamaConfig(
+            api=ApiConfig(
                 api_key="sk-test-key",
                 max_tokens=4096,
                 base_url="https://openrouter.ai/api/v1",
@@ -486,7 +486,7 @@ class TestOpenRouterLM:
                 repeat_last_n=512,
                 stream=False,
             ),
-            non_ollama=NonOllamaConfig(
+            api=ApiConfig(
                 api_key="sk-test-key",
                 max_tokens=4096,
                 base_url="https://openrouter.ai/api/v1",
@@ -531,7 +531,7 @@ class TestOpenRouterLM:
                 repeat_last_n=512,
                 stream=False,
             ),
-            non_ollama=NonOllamaConfig(
+            api=ApiConfig(
                 api_key="sk-test-key",
                 max_tokens=4096,
                 base_url="https://openrouter.ai/api/v1",
@@ -743,7 +743,7 @@ class TestOpenRouterLMHTTP:
                 repeat_last_n=512,
                 stream=False,
             ),
-            non_ollama=NonOllamaConfig(
+            api=ApiConfig(
                 api_key="sk-test-key",
                 max_tokens=4096,
                 base_url="https://openrouter.ai/api/v1",
@@ -852,7 +852,7 @@ class TestCreateLMOpenRouter:
                 repeat_last_n=512,
                 stream=False,
             ),
-            non_ollama=NonOllamaConfig(
+            api=ApiConfig(
                 api_key="sk-or-test-key",
                 max_tokens=8192,
                 base_url="https://openrouter.ai/api/v1",
@@ -892,7 +892,7 @@ class TestCreateLMOpenRouter:
                 repeat_last_n=512,
                 stream=False,
             ),
-            non_ollama=NonOllamaConfig(
+            api=ApiConfig(
                 api_key="sk-openai-test-key",
                 max_tokens=4096,
             ),
@@ -936,7 +936,7 @@ class TestCreateLMOpenRouter:
                     repeat_last_n=512,
                     stream=False,
                 ),
-                non_ollama=NonOllamaConfig(
+                api=ApiConfig(
                     api_key="sk-or-test-key",
                     max_tokens=8192,
                     base_url="https://openrouter.ai/api/v1",
@@ -974,7 +974,7 @@ class TestCreateLMOpenRouter:
                     repeat_last_n=512,
                     stream=False,
                 ),
-                non_ollama=NonOllamaConfig(
+                api=ApiConfig(
                     max_tokens=4096,
                 ),
             )
@@ -1005,7 +1005,7 @@ class TestCreateLMOpenRouter:
                 repeat_last_n=512,
                 stream=False,
             ),
-            non_ollama=NonOllamaConfig(
+            api=ApiConfig(
                 api_key="sk-or-test-key",
                 max_tokens=0,  # Invalid: must be positive
             ),

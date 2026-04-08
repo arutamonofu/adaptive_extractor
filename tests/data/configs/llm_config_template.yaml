@@ -22,7 +22,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
   teacher:
     provider: "ollama"
@@ -41,7 +41,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
 
 paths:

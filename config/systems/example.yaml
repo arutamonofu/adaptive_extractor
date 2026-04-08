@@ -5,8 +5,8 @@ project:
 
 llm:
   student:
-    provider: "ollama"
-    model: "mistral-small3.1-24b-128k:latest"
+    provider: "transformers"
+    model: "qwen/qwen3.5-27b"
     timeout: 600
     max_retries: 5
     temperature: 0.0
@@ -15,38 +15,68 @@ llm:
     repeat_penalty: 1.2
     repeat_last_n: 2048
     enable_cache: true
-    ollama:
-      num_ctx: 32000
-      num_predict: 2048
-      repeat_penalty: 1.2
-      repeat_last_n: 2048
-      stream: true
-    non_ollama:
-      max_tokens: 4096
-      # base_url: "https://openrouter.ai/api/v1"
+
+    # ollama:
+    #   num_ctx: 32000
+    #   num_predict: 2048
+    #   repeat_penalty: 1.2
+    #   repeat_last_n: 2048
+    #   stream: true
+
+    # api:
+    #   max_tokens: 4096
+    #   base_url: "https://openrouter.ai/api/v1"
+    #   reasoning:
+    #     enabled: true
+
+    transformers:
+      device_map: "auto"
+      torch_dtype: "float16"
+      load_in_4bit: true
+      load_in_8bit: false
+      trust_remote_code: true
+      max_new_tokens: 4096
+      do_sample: true
+      attn_implementation: "sdpa"
+      repetition_penalty: 1.2
+      no_repeat_ngram_size: 0
 
   teacher:
-    provider: "ollama"
-    model: "gpt-oss:20b"
+    provider: "api"
+    model: "qwen/qwen3.5-397b-a17b"
     timeout: 600
     max_retries: 2
-    temperature: 0.5
+    temperature: 1
     rate_limit_delay: 10.0
     top_p: 0.9
     repeat_penalty: 1.1
     repeat_last_n: 512
     enable_cache: true
-    ollama:
-      num_ctx: 32000
-      num_predict: 4096
-      repeat_penalty: 1.1
-      repeat_last_n: 512
-      stream: true
-    non_ollama:
+
+    # ollama:
+    #   num_ctx: 32000
+    #   num_predict: 4096
+    #   repeat_penalty: 1.1
+    #   repeat_last_n: 512
+    #   stream: true
+
+    api:
       max_tokens: 8192
-      # base_url: "https://api.openai.com/v1"
+      base_url: "https://openrouter.ai/api/v1"
       reasoning:
         enabled: true
+
+    # transformers:
+    #   device_map: "auto"
+    #   torch_dtype: "bfloat16"
+    #   load_in_4bit: false
+    #   load_in_8bit: false
+    #   trust_remote_code: true
+    #   max_new_tokens: 8192
+    #   do_sample: true
+    #   attn_implementation: "sdpa"
+    #   repetition_penalty: 1.1
+    #   no_repeat_ngram_size: 0
 
 parsing:
   parser: "gemini"  # Options: "marker" or "gemini"
@@ -127,22 +157,3 @@ circuit_breaker:
   failure_threshold: 8
   reset_timeout: 30.0
   half_open_max_calls: 1
-
-# --- Transformers provider example (uncomment to use) ---
-# llm:
-#   student:
-#     provider: "transformers"
-#     model: "Qwen/Qwen3.5-27B-Instruct-AWQ"
-#     temperature: 0.0
-#     timeout: 600                  # Converted to max_time in generate()
-#     max_retries: 5
-#     top_p: 0.1
-#     enable_cache: true
-#     transformers:
-#       device_map: "auto"
-#       torch_dtype: "float16"
-#       load_in_4bit: true
-#       trust_remote_code: true
-#       max_new_tokens: 4096
-#       repetition_penalty: 1.2     # >1.0 penalizes repeated tokens
-#       no_repeat_ngram_size: 0     # 0 = disabled, 3 = prevent 3-gram repeats

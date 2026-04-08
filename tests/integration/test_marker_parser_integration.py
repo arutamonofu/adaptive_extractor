@@ -201,7 +201,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 512
 
   teacher:
@@ -221,7 +221,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 512
 
 parsing:
@@ -321,7 +321,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 512
 
   teacher:
@@ -341,7 +341,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 512
 
 parsing:

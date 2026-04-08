@@ -72,7 +72,7 @@ llm:
       repeat_penalty: 1.2
       repeat_last_n: 2048
       stream: false
-    non_ollama:
+    api:
       max_tokens: 4096
 
   teacher:
@@ -92,7 +92,7 @@ llm:
       repeat_penalty: 1.1
       repeat_last_n: 512
       stream: false
-    non_ollama:
+    api:
       max_tokens: 8192
 
 paths:
@@ -217,8 +217,8 @@ llm:
       repeat_last_n: 2048         # Tokens to consider for repeat penalty
       stream: false               # Enable streaming responses
 
-    # Non-Ollama settings (API key is set via *_API_KEY env var)
-    non_ollama:
+    # API provider settings (API key is set via *_API_KEY env var)
+    api:
       max_tokens: 4096            # Max tokens for API providers
 
     # Transformers settings (local inference via HuggingFace)
@@ -254,8 +254,8 @@ llm:
       repeat_last_n: 512          # Tokens to consider for repeat penalty
       stream: false               # Enable streaming responses
 
-    # Non-Ollama settings (API key is set via *_API_KEY env var)
-    non_ollama:
+    # API provider settings (API key is set via *_API_KEY env var)
+    api:
       max_tokens: 8192            # Max tokens for API providers
 
     # Transformers settings (local inference via HuggingFace)
@@ -542,7 +542,7 @@ export OLLAMA_STUDENT_BASE_URL="http://localhost:11434"
 export OLLAMA_TEACHER_BASE_URL="http://localhost:11434"
 ```
 
-**For non-Ollama API users:**
+**For API users:**
 ```bash
 export OPENAI_API_KEY="sk-..."
 # OR

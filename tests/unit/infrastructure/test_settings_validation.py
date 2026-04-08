@@ -90,7 +90,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
   teacher:
     provider: "ollama"
@@ -109,7 +109,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
 paths:
   pdf_dir: "data/pdf"
@@ -196,7 +196,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
   teacher:
     provider: "ollama"
@@ -215,7 +215,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
 paths:
   pdf_dir: "data/pdf"
@@ -302,7 +302,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
   teacher:
     provider: "ollama"
@@ -321,7 +321,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
 paths:
   pdf_dir: "data/pdf"
@@ -409,7 +409,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
   teacher:
     provider: "ollama"
@@ -428,7 +428,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
 paths:
   pdf_dir: "data/pdf"
@@ -490,11 +490,11 @@ circuit_breaker:
 
 
 @pytest.mark.unit
-class TestNonOllamaApiKeyValidation:
-    """Tests for non-Ollama API key validation."""
+class TestApiKeyValidation:
+    """Tests for API key validation."""
 
-    def test_non_ollama_without_api_key_raises_error(self, tmp_path: Path):
-        """Test that non-Ollama config without API key raises ValueError."""
+    def test_api_without_api_key_raises_error(self, tmp_path: Path):
+        """Test that API config without API key raises ValueError."""
         # Create initial instruction file
         instruction_file = tmp_path / "config" / "initial_instructions" / "test.txt"
         instruction_file.parent.mkdir(parents=True, exist_ok=True)
@@ -522,7 +522,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
   teacher:
     provider: "api"
@@ -541,7 +541,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
 paths:
   pdf_dir: "data/pdf"
@@ -614,7 +614,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
   teacher:
     provider: "api"
@@ -633,7 +633,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
 paths:
   pdf_dir: "data/pdf"
@@ -693,8 +693,8 @@ circuit_breaker:
             os.environ.pop("OLLAMA_STUDENT_BASE_URL", None)
             os.environ.pop("OLLAMA_TEACHER_BASE_URL", None)
 
-    def test_non_ollama_with_api_key_succeeds(self, tmp_path: Path):
-        """Test that non-Ollama config with API key succeeds."""
+    def test_api_with_api_key_succeeds(self, tmp_path: Path):
+        """Test that API config with API key succeeds."""
         # Create initial instruction file
         instruction_file = tmp_path / "config" / "initial_instructions" / "test.txt"
         instruction_file.parent.mkdir(parents=True, exist_ok=True)
@@ -722,7 +722,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
   teacher:
     provider: "api"
@@ -741,7 +741,7 @@ llm:
       stream: false
       repeat_penalty: 1.1
       repeat_last_n: 512
-    non_ollama:
+    api:
       max_tokens: 4096
 paths:
   pdf_dir: "data/pdf"
@@ -796,7 +796,7 @@ circuit_breaker:
             settings = Settings.load(config_path=config_file, load_env_file=False)
 
             assert settings.llm.student.provider == "api"
-            assert settings.llm.student.non_ollama.api_key is not None
+            assert settings.llm.student.api.api_key is not None
         finally:
             os.environ.pop("OLLAMA_STUDENT_BASE_URL", None)
             os.environ.pop("OLLAMA_TEACHER_BASE_URL", None)

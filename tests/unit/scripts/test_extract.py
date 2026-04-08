@@ -118,7 +118,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 256
   teacher:
     provider: "ollama"
@@ -137,7 +137,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 256
 parsing:
   parser: marker
@@ -232,7 +232,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 256
   teacher:
     provider: "ollama"
@@ -251,7 +251,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 256
 parsing:
   parser: marker
@@ -347,7 +347,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 256
   teacher:
     provider: "ollama"
@@ -366,7 +366,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 256
 parsing:
   parser: marker
@@ -505,7 +505,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 256
   teacher:
     provider: "ollama"
@@ -524,7 +524,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 256
 parsing:
   parser: marker
@@ -634,7 +634,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 256
   teacher:
     provider: "ollama"
@@ -653,7 +653,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 256
 parsing:
   parser: marker

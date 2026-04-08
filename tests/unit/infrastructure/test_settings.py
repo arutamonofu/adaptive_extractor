@@ -8,14 +8,14 @@ import pytest
 from aee.infrastructure.config.settings import Settings
 
 
-class TestNonOllamaConfig:
-    """Tests for NonOllamaConfig with base_url support."""
+class TestApiConfig:
+    """Tests for ApiConfig with base_url support."""
 
-    def test_non_ollama_config_with_base_url(self):
-        """Test NonOllamaConfig accepts base_url field."""
-        from aee.infrastructure.config.settings import NonOllamaConfig
+    def test_api_config_with_base_url(self):
+        """Test ApiConfig accepts base_url field."""
+        from aee.infrastructure.config.settings import ApiConfig
 
-        config = NonOllamaConfig(
+        config = ApiConfig(
             api_key="test-key",
             max_tokens=4096,
             base_url="https://openrouter.ai/api/v1",
@@ -25,11 +25,11 @@ class TestNonOllamaConfig:
         assert config.max_tokens == 4096
         assert config.api_key.get_secret_value() == "test-key"
 
-    def test_non_ollama_config_without_base_url(self):
-        """Test NonOllamaConfig works without base_url (optional field)."""
-        from aee.infrastructure.config.settings import NonOllamaConfig
+    def test_api_config_without_base_url(self):
+        """Test ApiConfig works without base_url (optional field)."""
+        from aee.infrastructure.config.settings import ApiConfig
 
-        config = NonOllamaConfig(
+        config = ApiConfig(
             api_key="test-key",
             max_tokens=4096,
         )
@@ -94,7 +94,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 256
   teacher:
     provider: "api"
@@ -113,7 +113,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 256
 parsing:
   parser: marker
@@ -162,10 +162,10 @@ circuit_breaker:
         assert settings.openrouter_api_key is not None
         assert settings.openrouter_api_key.get_secret_value() == "sk-or-test-key-12345"
 
-    def test_settings_openrouter_applied_to_non_ollama_config(
+    def test_settings_openrouter_applied_to_api_config(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ):
-        """Test OpenRouter API key is applied to non-Ollama config."""
+        """Test OpenRouter API key is applied to API config."""
         # Clear all API key env vars first, then set only OPENROUTER_API_KEY
         for key in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "OPENROUTER_API_KEY"]:
             if key in os.environ:
@@ -208,7 +208,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 256
   teacher:
     provider: "api"
@@ -227,7 +227,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 4096
       base_url: "https://openrouter.ai/api/v1"
 parsing:
@@ -275,20 +275,20 @@ circuit_breaker:
 
         # Verify teacher config has API key applied
         assert settings.llm.teacher.provider == "api"
-        assert settings.llm.teacher.non_ollama.api_key is not None
+        assert settings.llm.teacher.api.api_key is not None
         assert (
-            settings.llm.teacher.non_ollama.api_key.get_secret_value()
+            settings.llm.teacher.api.api_key.get_secret_value()
             == "sk-or-openrouter-key"
         )
         # Verify base_url is preserved
         assert (
-            settings.llm.teacher.non_ollama.base_url
+            settings.llm.teacher.api.base_url
             == "https://openrouter.ai/api/v1"
         )
 
 
 class TestSettingsBaseURL:
-    """Tests for base_url configuration in non-Ollama settings."""
+    """Tests for base_url configuration in API settings."""
 
     def test_base_url_in_yaml_config(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -335,7 +335,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 4096
       base_url: "https://custom-api.example.com/v1"
   teacher:
@@ -355,7 +355,7 @@ llm:
       repeat_penalty: 1.0
       repeat_last_n: 64
       stream: false
-    non_ollama:
+    api:
       max_tokens: 256
 parsing:
   parser: marker
@@ -402,6 +402,6 @@ circuit_breaker:
 
         # Verify base_url is loaded (not treated as path)
         assert (
-            settings.llm.student.non_ollama.base_url
+            settings.llm.student.api.base_url
             == "https://custom-api.example.com/v1"
         )

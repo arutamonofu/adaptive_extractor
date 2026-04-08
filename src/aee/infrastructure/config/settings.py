@@ -231,8 +231,8 @@ class TransformersConfig(BaseModel):
     )
 
 
-class NonOllamaConfig(BaseModel):
-    """Non-Ollama LLM configuration.
+class ApiConfig(BaseModel):
+    """API provider configuration.
 
     Environment variables:
         OPENAI_API_KEY: OpenAI API key (required when provider="api")
@@ -241,7 +241,7 @@ class NonOllamaConfig(BaseModel):
         OPENROUTER_API_KEY: OpenRouter API key (required when provider="api")
 
     YAML configuration (config/default.yaml):
-        max_tokens: Maximum tokens for non-Ollama providers
+        max_tokens: Maximum tokens for API providers
         base_url: Custom API base URL (optional, for OpenRouter or compatible endpoints)
 
     Note: API key must be set via environment variable. Validation will fail
@@ -252,11 +252,11 @@ class NonOllamaConfig(BaseModel):
     # For specific providers, use explicit env var names
     api_key: Optional[SecretStr] = Field(
         default=None,
-        description="API key for non-Ollama providers (from environment)"
+        description="API key for API providers (from environment)"
     )
     max_tokens: int = Field(
         ...,
-        description="Maximum tokens for non-Ollama providers"
+        description="Maximum tokens for API providers"
     )
     base_url: Optional[str] = Field(
         default=None,
@@ -270,7 +270,7 @@ class NonOllamaConfig(BaseModel):
     @field_validator("api_key", mode="after")
     @classmethod
     def validate_api_key(cls, v: Optional[SecretStr]) -> Optional[SecretStr]:
-        """Validate that API key is set for non-Ollama providers.
+        """Validate that API key is set for API providers.
 
         Note: This validator only checks if the key is provided. The actual
             requirement (provider="api") is validated at the LLMInstanceConfig level.
@@ -323,7 +323,7 @@ class LLMInstanceConfig(BaseModel):
     )
 
     ollama: OllamaConfig = Field(default_factory=OllamaConfig)  # type: ignore[arg-type]
-    non_ollama: NonOllamaConfig = Field(default_factory=NonOllamaConfig)  # type: ignore[arg-type]
+    api: ApiConfig = Field(default_factory=ApiConfig)
     transformers: TransformersConfig = Field(default_factory=TransformersConfig)
 
     @model_validator(mode="after")
@@ -335,7 +335,7 @@ class LLMInstanceConfig(BaseModel):
                     "Ollama URL must be set via OLLAMA_*_BASE_URL env var when provider='ollama'"
                 )
         elif self.provider == "api":
-            if self.non_ollama.api_key is None:
+            if self.api.api_key is None:
                 raise ValueError(
                     "API key must be set for API provider. "
                     "Set OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY in .env file."
@@ -796,17 +796,17 @@ class Settings(BaseSettings):
         # Apply Ollama URL overrides from environment variables
         cls._apply_env_overrides(config_data)
 
-        # Apply API keys from environment variables to non_ollama config
+        # Apply API keys from environment variables to api config
         cls._apply_api_keys(config_data)
 
         return cls(**config_data)
 
     @classmethod
     def _apply_api_keys(cls, config_data: dict) -> None:
-        """Apply API keys from environment variables to non_ollama config.
+        """Apply API keys from environment variables to api config.
 
         API keys are read from environment variables and injected into the
-        llm.student.non_ollama and llm.teacher.non_ollama configurations.
+        llm.student.api and llm.teacher.api configurations.
 
         Env vars applied:
             - OPENAI_API_KEY: OpenAI API key
@@ -889,8 +889,8 @@ class Settings(BaseSettings):
                 return  # Skip non-API models (ollama, transformers)
 
             model_name = component_data.get("model", "")
-            non_ollama_config = component_data.get("non_ollama", {})
-            base_url = non_ollama_config.get("base_url")
+            api_config = component_data.get("api", {})
+            base_url = api_config.get("base_url")
 
             # Priority 1: Try to get API key from base_url
             api_key = get_api_key_from_base_url(base_url)
@@ -900,9 +900,9 @@ class Settings(BaseSettings):
                 api_key = get_api_key_for_model(model_name)
 
             if api_key:
-                if "non_ollama" not in component_data:
-                    component_data["non_ollama"] = {}
-                component_data["non_ollama"]["api_key"] = api_key
+                if "api" not in component_data:
+                    component_data["api"] = {}
+                component_data["api"]["api_key"] = api_key
 
                 # Determine key source for logging
                 key_source = "Unknown"

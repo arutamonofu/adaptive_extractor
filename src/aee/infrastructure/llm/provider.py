@@ -332,12 +332,12 @@ class OpenRouterLM(BaseHTTPProvider):
     ):
         super().__init__(config, circuit_breaker=circuit_breaker)
 
-        noc = config.non_ollama
-        self.max_tokens = noc.max_tokens
+        api_cfg = config.api
+        self.max_tokens = api_cfg.max_tokens
         self.provider = "OpenRouter"
-        self.reasoning = noc.reasoning
+        self.reasoning = api_cfg.reasoning
 
-        if noc.api_key is None:
+        if api_cfg.api_key is None:
             raise ValueError(
                 "API key must be set for OpenRouter. "
                 "Set OPENROUTER_API_KEY in .env file."
@@ -345,8 +345,8 @@ class OpenRouterLM(BaseHTTPProvider):
         if self.max_tokens <= 0:
             raise ValueError("Max tokens must be positive")
 
-        self.api_key = noc.api_key.get_secret_value()
-        self.base_url = (noc.base_url or "https://openrouter.ai/api/v1").rstrip("/") + "/chat/completions"
+        self.api_key = api_cfg.api_key.get_secret_value()
+        self.base_url = (api_cfg.base_url or "https://openrouter.ai/api/v1").rstrip("/") + "/chat/completions"
 
     def _prepare_payload(self, messages: List[Dict[str, Any]], **kwargs) -> Dict[str, Any]:
         temperature = kwargs.get("temperature", self.temperature)
