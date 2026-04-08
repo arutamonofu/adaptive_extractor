@@ -211,10 +211,6 @@ class TransformersConfig(BaseModel):
         default=4096,
         description="Maximum number of new tokens to generate"
     )
-    do_sample: bool = Field(
-        default=True,
-        description="Use sampling vs greedy decoding"
-    )
     attn_implementation: str = Field(
         default="sdpa",
         description="Attention implementation: 'sdpa', 'flash_attention_2', 'eager'"
@@ -309,21 +305,13 @@ class LLMInstanceConfig(BaseModel):
         ...,
         description="Nucleus sampling top-p parameter"
     )
-    repeat_penalty: float = Field(
-        ...,
-        description="Penalty for repeated tokens (ollama-specific, ignored by others)"
-    )
-    repeat_last_n: int = Field(
-        ...,
-        description="Number of tokens to consider for repeat penalty (ollama-specific, ignored by others)"
-    )
     enable_cache: bool = Field(
         ...,
         description="Enable LLM response caching"
     )
 
     ollama: OllamaConfig = Field(default_factory=OllamaConfig)  # type: ignore[arg-type]
-    api: ApiConfig = Field(default_factory=ApiConfig)
+    api: ApiConfig = Field(default_factory=ApiConfig)  # type: ignore[arg-type]
     transformers: TransformersConfig = Field(default_factory=TransformersConfig)
 
     @model_validator(mode="after")

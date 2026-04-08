@@ -192,8 +192,6 @@ llm:
     temperature: 0.0
     rate_limit_delay: 1.0
     top_p: 0.1
-    repeat_penalty: 1.0
-    repeat_last_n: 64
     enable_cache: true
     ollama:
       num_ctx: 1024
@@ -212,8 +210,6 @@ llm:
     temperature: 0.5
     rate_limit_delay: 1.0
     top_p: 0.9
-    repeat_penalty: 1.0
-    repeat_last_n: 64
     enable_cache: true
     ollama:
       num_ctx: 1024
@@ -312,8 +308,6 @@ llm:
     temperature: 0.0
     rate_limit_delay: 1.0
     top_p: 0.1
-    repeat_penalty: 1.0
-    repeat_last_n: 64
     enable_cache: true
     ollama:
       num_ctx: 1024
@@ -332,8 +326,6 @@ llm:
     temperature: 0.5
     rate_limit_delay: 1.0
     top_p: 0.9
-    repeat_penalty: 1.0
-    repeat_last_n: 64
     enable_cache: true
     ollama:
       num_ctx: 1024

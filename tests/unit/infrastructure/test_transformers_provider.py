@@ -1,7 +1,7 @@
 """Unit tests for TransformersLM provider implementation."""
 
 import threading
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
@@ -13,7 +13,7 @@ from aee.infrastructure.config.settings import (
     TransformersConfig,
 )
 from aee.infrastructure.llm.circuit_breaker import CircuitBreaker, CircuitBreakerError
-from aee.infrastructure.llm.provider import TransformersLM, BaseLMProvider, create_lm
+from aee.infrastructure.llm.provider import TransformersLM
 
 
 # =============================================================================
@@ -32,8 +32,6 @@ def transformers_config():
         temperature=0.5,
         rate_limit_delay=0.0,
         top_p=0.9,
-        repeat_penalty=1.1,
-        repeat_last_n=512,
         enable_cache=True,
         ollama=OllamaConfig(
             num_ctx=8192,
@@ -52,7 +50,6 @@ def transformers_config():
             load_in_8bit=False,
             trust_remote_code=False,
             max_new_tokens=4096,
-            do_sample=True,
             attn_implementation="sdpa",
         ),
     )
@@ -103,7 +100,6 @@ class TestTransformersConfig:
         assert config.load_in_8bit is False
         assert config.trust_remote_code is False
         assert config.max_new_tokens == 4096
-        assert config.do_sample is True
         assert config.attn_implementation == "sdpa"
         assert config.repetition_penalty == 1.2
         assert config.no_repeat_ngram_size == 0
@@ -127,8 +123,6 @@ class TestLLMInstanceConfig:
             temperature=0.5,
             rate_limit_delay=0.0,
             top_p=0.9,
-            repeat_penalty=1.0,
-            repeat_last_n=64,
             enable_cache=True,
             ollama=OllamaConfig(
                 num_ctx=4096,
@@ -153,8 +147,6 @@ class TestLLMInstanceConfig:
                 temperature=0.5,
                 rate_limit_delay=0.0,
                 top_p=0.9,
-                repeat_penalty=1.0,
-                repeat_last_n=64,
                 enable_cache=True,
                 ollama=OllamaConfig(
                     num_ctx=4096,
@@ -178,8 +170,6 @@ class TestLLMInstanceConfig:
             temperature=0.5,
             rate_limit_delay=0.0,
             top_p=0.9,
-            repeat_penalty=1.0,
-            repeat_last_n=64,
             enable_cache=True,
             ollama=OllamaConfig(
                 num_ctx=4096,
