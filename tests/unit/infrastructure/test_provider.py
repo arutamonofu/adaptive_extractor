@@ -9,14 +9,8 @@ from unittest.mock import patch
 import pytest
 import responses
 
-from aee.infrastructure.config.settings import LLMInstanceConfig, ApiConfig, OllamaConfig
-from aee.infrastructure.llm.circuit_breaker import CircuitBreaker
-from aee.infrastructure.llm.provider import (
-    BaseHTTPProvider,
-    OllamaLM,
-    OpenRouterLM,
-    create_lm,
-)
+from aee.infrastructure.config import LLMInstanceConfig, ApiConfig, OllamaConfig
+from aee.infrastructure.llm import CircuitBreaker, OllamaLM, create_lm, BaseHTTPProvider, OpenRouterLM
 
 
 # =============================================================================
@@ -35,8 +29,6 @@ def ollama_config():
         temperature=0.5,
         rate_limit_delay=0.0,
         top_p=0.9,
-        repeat_penalty=1.1,
-        repeat_last_n=512,
         enable_cache=True,
         ollama=OllamaConfig(
             num_ctx=8192,
@@ -45,9 +37,6 @@ def ollama_config():
             repeat_last_n=512,
             stream=False,
             ollama_base_url="http://localhost:11434",
-        ),
-        api=ApiConfig(
-            max_tokens=4096,
         ),
     )
 
@@ -63,16 +52,7 @@ def openrouter_config():
         temperature=0.5,
         rate_limit_delay=0.0,
         top_p=0.9,
-        repeat_penalty=1.1,
-        repeat_last_n=512,
         enable_cache=True,
-        ollama=OllamaConfig(
-            num_ctx=8192,
-            num_predict=2048,
-            repeat_penalty=1.1,
-            repeat_last_n=512,
-            stream=False,
-        ),
         api=ApiConfig(
             api_key="sk-test-key",
             max_tokens=4096,
@@ -767,7 +747,7 @@ class TestCreateLM:
 
     def test_create_ollama_lm(self, ollama_config):
         """Test create_lm creates OllamaLM for Ollama config."""
-        from aee.infrastructure.config.settings import CircuitBreakerConfig
+        from aee.infrastructure.config import CircuitBreakerConfig
 
         # OllamaLM requires circuit breaker, so we need to provide config
         cb_config = CircuitBreakerConfig(
@@ -789,7 +769,7 @@ class TestCreateLM:
 
     def test_create_lm_with_circuit_breaker(self, ollama_config):
         """Test create_lm creates circuit breaker when enabled."""
-        from aee.infrastructure.config.settings import CircuitBreakerConfig
+        from aee.infrastructure.config import CircuitBreakerConfig
 
         cb_config = CircuitBreakerConfig(
             failure_threshold=5,
@@ -804,7 +784,7 @@ class TestCreateLM:
 
     def test_create_lm_openrouter_with_circuit_breaker(self, openrouter_config):
         """Test create_lm creates circuit breaker for OpenRouter when enabled."""
-        from aee.infrastructure.config.settings import CircuitBreakerConfig
+        from aee.infrastructure.config import CircuitBreakerConfig
 
         cb_config = CircuitBreakerConfig(
             failure_threshold=5,

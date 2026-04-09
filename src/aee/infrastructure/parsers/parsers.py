@@ -5,12 +5,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any, Union
-
-# Marker
-from marker.converters.pdf import PdfConverter
-from marker.models import create_model_dict
-from marker.config.parser import ConfigParser
+from typing import TYPE_CHECKING, Any, Union
 
 # Project
 from aee.infrastructure.parsers.base import BaseParser
@@ -20,6 +15,9 @@ from aee.infrastructure.parsers.marker_config import (
     get_custom_processors,
     get_torch_device,
 )
+
+if TYPE_CHECKING:
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +143,11 @@ class MarkerParser(BaseParser):
         Raises:
             ValueError: If config is None.
         """
+        # Lazy import — marker is only needed when MarkerParser is instantiated
+        from marker.converters.pdf import PdfConverter
+        from marker.models import create_model_dict
+        from marker.config.parser import ConfigParser
+
         if config is None:
             raise ValueError("Configuration object is required for MarkerParser")
         self.cfg = config
@@ -274,6 +277,10 @@ class GeminiParser(BaseParser):
                 else:
                     logger.error(f"Gemini parsing failed for {path.name} after {attempt + 1} attempts: {error_msg}")
                     raise
+
+        raise RuntimeError(
+            f"Gemini parsing failed for {path.name} after exhausting all retry attempts"
+        )
 
     def _do_parse(self, path: Path) -> str:
         """Internal method to perform actual Gemini parsing.

@@ -22,9 +22,10 @@ dependencies:
 
   # ML and transformers
   - scikit-learn>=1.3.0
-  - transformers>=4.40.0
+  - transformers>=4.40.0  # Use >=5.0 for Qwen 3.5 (qwen3_5 architecture)
   - sentence-transformers>=2.2.0
   - pytorch>=2.0.0
+  - accelerate>=0.27.0
 
   # Visualization
   - matplotlib>=3.7.0
@@ -50,16 +51,17 @@ dependencies:
       # LLM Framework
       - dspy-ai>=2.4.4
 
-      # PDF parsing
-      - marker-pdf>=1.0.0
+      # PDF parsing (optional — requires transformers < 5.0)
+      # If using transformers >= 5.0, use parser: "gemini" instead.
+      # - marker-pdf>=1.0.0
+      # - onnxruntime-gpu>=1.15.0
       - pypdf>=3.0.0
-      - onnxruntime-gpu>=1.15.0
 
       # Experiment tracking and UI
       - mlflow>=2.10.0
       - streamlit>=1.28.0
 
-      # Google Gemini API
+      # Google Gemini API (for parser: "gemini")
       - google-genai>=1.0.0
 
       # Statistical modeling (for power analysis)

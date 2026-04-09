@@ -97,9 +97,6 @@ paths:
 task:
   name: nanozymes
   initial_instruction_file: {instruction_file}
-  evaluation:
-    compare_fields: [formula, activity]
-    float_tolerance: 0.1
 llm:
   student:
     provider: "ollama"
@@ -167,7 +164,7 @@ circuit_breaker:
   half_open_max_calls: 1
 """, encoding="utf-8")
 
-        from aee.infrastructure.config.settings import Settings
+        from aee import Settings
         from aee.infrastructure.llm import setup_student
 
         # Reset DSPy config
@@ -207,9 +204,6 @@ paths:
 task:
   name: nanozymes
   initial_instruction_file: {instruction_file}
-  evaluation:
-    compare_fields: [formula, activity]
-    float_tolerance: 0.1
 llm:
   student:
     provider: "ollama"
@@ -318,9 +312,6 @@ paths:
 task:
   name: nanozymes
   initial_instruction_file: {instruction_file}
-  evaluation:
-    compare_fields: [formula, activity]
-    float_tolerance: 0.1
 llm:
   student:
     provider: "ollama"
@@ -472,9 +463,6 @@ paths:
 task:
   name: invalid_task
   initial_instruction_file: {instruction_file}
-  evaluation:
-    compare_fields: [formula]
-    float_tolerance: 0.1
 llm:
   student:
     provider: "ollama"
@@ -597,9 +585,6 @@ paths:
 task:
   name: nanozymes
   initial_instruction_file: {instruction_file}
-  evaluation:
-    compare_fields: [formula]
-    float_tolerance: 0.1
 llm:
   student:
     provider: "ollama"

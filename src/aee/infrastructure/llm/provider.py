@@ -157,7 +157,7 @@ class BaseHTTPProvider(BaseLMProvider, ABC):
         self.base_url: str = ""
         self._reasoning_details: Optional[List[Dict[str, Any]]] = None
 
-        if self.timeout <= 0:
+        if self.timeout is not None and self.timeout <= 0:
             raise ValueError("Timeout must be positive")
         if self.max_retries < 0:
             raise ValueError("Max retries cannot be negative")
@@ -247,6 +247,11 @@ class OllamaLM(BaseHTTPProvider):
         super().__init__(config, circuit_breaker=circuit_breaker)
 
         oc = config.ollama
+        if oc is None:
+            raise ValueError(
+                "Ollama configuration (ollama section) is required when using "
+                "the Ollama provider."
+            )
         self.num_ctx = oc.num_ctx
         self.num_predict = oc.num_predict
         self.stream = oc.stream
@@ -333,6 +338,11 @@ class OpenRouterLM(BaseHTTPProvider):
         super().__init__(config, circuit_breaker=circuit_breaker)
 
         api_cfg = config.api
+        if api_cfg is None:
+            raise ValueError(
+                "API configuration (api section) is required when using "
+                "the OpenRouter provider."
+            )
         self.max_tokens = api_cfg.max_tokens
         self.provider = "OpenRouter"
         self.reasoning = api_cfg.reasoning
@@ -779,7 +789,7 @@ def create_lm(
     else:
         raise ValueError(f"Unknown provider: {config.provider}")
 
-    if config.rate_limit_delay > 0:
+    if config.rate_limit_delay is not None and config.rate_limit_delay > 0:
         lm = _apply_rate_limit(lm, config.rate_limit_delay)
 
     return lm

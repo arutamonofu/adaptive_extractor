@@ -15,11 +15,6 @@ paths:
 task:
   name: "nanozymes"
   initial_instruction_file: "tests/data/instructions/nanozymes_sota_test.txt"
-  evaluation:
-    compare_fields:
-      - formula
-      - activity
-    float_tolerance: 0.1
 
 llm:
   student:

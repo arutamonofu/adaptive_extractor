@@ -16,7 +16,8 @@ from aee.application.use_cases.parse_documents import (
     ParseDocumentsRequest,
     ParseDocumentsUseCase,
 )
-from aee.infrastructure.config.settings import GeminiParserConfig, Settings
+from aee import Settings
+from aee.infrastructure.config import GeminiParserConfig
 from aee.infrastructure.parsers import GeminiParser, get_parser
 from aee.infrastructure.storage import DocumentRepository
 
@@ -236,10 +237,6 @@ optimization:
 task:
   name: "test"
   initial_instruction_file: "{instruction_file}"
-  evaluation:
-    compare_fields:
-      - "formula"
-    float_tolerance: 0.05
 
 extraction:
   enable_cache: false
@@ -360,10 +357,6 @@ optimization:
 task:
   name: "test"
   initial_instruction_file: "{instruction_file}"
-  evaluation:
-    compare_fields:
-      - "formula"
-    float_tolerance: 0.05
 
 extraction:
   enable_cache: false

@@ -2,12 +2,12 @@
 """Task-specific evaluation metrics for AutoEvoExtractor."""
 
 import logging
-from typing import Any, Dict, List, Optional, Union
-
-import dspy
-from tabulate import tabulate  # type: ignore[import-untyped]
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from aee.domain.evaluation.matcher import ExperimentEntity, ExperimentMatcher
+
+if TYPE_CHECKING:
+    import dspy
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class TaskMetric:
         self.fields_to_compare = task_config["compare_fields"]
         self.task_name = task_config.get("name", "unknown")
 
-    def _extract_experiments(self, obj: Union[dspy.Example, dspy.Prediction]) -> List[ExperimentEntity]:
+    def _extract_experiments(self, obj: Union["dspy.Example", "dspy.Prediction"]) -> List[ExperimentEntity]:
         """Extract experiments from a DSPy object.
 
         Args:
@@ -64,6 +64,8 @@ class TaskMetric:
 
     def _log_metrics(self, report: Dict[str, Any]) -> None:
         """Log evaluation metrics as formatted tables."""
+        from tabulate import tabulate  # type: ignore[import-untyped]
+
         summary = [
             ["F1", f"{report['f1']:.3f}"],
             ["Precision", f"{report['precision']:.3f}"],
@@ -76,7 +78,7 @@ class TaskMetric:
         logger.info("\n" + tabulate(summary, headers=["Metric", "Value"], tablefmt="fancy_grid"))
         logger.info("\n" + tabulate(fields, headers=["Field", "Score"], tablefmt="fancy_grid"))
 
-    def __call__(self, example: dspy.Example, prediction: dspy.Prediction, trace: Any = None) -> float:
+    def __call__(self, example: "dspy.Example", prediction: "dspy.Prediction", trace: Any = None) -> float:
         """Calculate the metric score for a prediction.
 
         Args:

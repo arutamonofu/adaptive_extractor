@@ -4,6 +4,9 @@ Tests cover:
 - Integration with ParseDocumentsUseCase
 - Configuration loading from YAML
 - End-to-end parsing flow with mocked PdfConverter
+
+Note: These tests are skipped when marker is not importable
+(e.g., when using transformers >= 5.0 which removes transformers.onnx).
 """
 
 import os
@@ -12,11 +15,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+pytest.importorskip("marker.converters.pdf")
+
 from aee.application.use_cases.parse_documents import (
     ParseDocumentsRequest,
     ParseDocumentsUseCase,
 )
-from aee.infrastructure.config.settings import MarkerConfig, Settings
+from aee import Settings
+from aee.infrastructure.config import MarkerConfig
 from aee.infrastructure.parsers import MarkerParser, get_parser
 from aee.infrastructure.storage import DocumentRepository
 
@@ -25,9 +31,9 @@ from aee.infrastructure.storage import DocumentRepository
 class TestMarkerParserIntegration:
     """Integration tests for MarkerParser."""
 
-    @patch("aee.infrastructure.parsers.parsers.create_model_dict")
-    @patch("aee.infrastructure.parsers.parsers.ConfigParser")
-    @patch("aee.infrastructure.parsers.parsers.PdfConverter")
+    @patch("marker.models.create_model_dict")
+    @patch("marker.config.parser.ConfigParser")
+    @patch("marker.converters.pdf.PdfConverter")
     def test_marker_parser_with_document_repository(
         self,
         mock_converter_class,
@@ -73,9 +79,9 @@ class TestMarkerParserIntegration:
         saved_content = output_path.read_text(encoding="utf-8")
         assert saved_content == "# Test Paper\n\nAbstract: Test content."
 
-    @patch("aee.infrastructure.parsers.parsers.create_model_dict")
-    @patch("aee.infrastructure.parsers.parsers.ConfigParser")
-    @patch("aee.infrastructure.parsers.parsers.PdfConverter")
+    @patch("marker.models.create_model_dict")
+    @patch("marker.config.parser.ConfigParser")
+    @patch("marker.converters.pdf.PdfConverter")
     def test_parse_documents_use_case_with_marker(
         self,
         mock_converter_class,
@@ -244,10 +250,6 @@ optimization:
 task:
   name: "test"
   initial_instruction_file: "{instruction_file}"
-  evaluation:
-    compare_fields:
-      - "formula"
-    float_tolerance: 0.05
 
 extraction:
   enable_cache: false
@@ -359,10 +361,6 @@ optimization:
 task:
   name: "test"
   initial_instruction_file: "{instruction_file}"
-  evaluation:
-    compare_fields:
-      - "formula"
-    float_tolerance: 0.05
 
 extraction:
   enable_cache: false
@@ -381,9 +379,9 @@ circuit_breaker:
         settings = Settings.load(config_path=config_path, load_env_file=False)
 
         # Get parser (mock the actual Marker initialization)
-        with patch("aee.infrastructure.parsers.parsers.create_model_dict"):
-            with patch("aee.infrastructure.parsers.parsers.ConfigParser"):
-                with patch("aee.infrastructure.parsers.parsers.PdfConverter"):
+        with patch("marker.models.create_model_dict"):
+            with patch("marker.config.parser.ConfigParser"):
+                with patch("marker.converters.pdf.PdfConverter"):
                     parser = get_parser(settings.parsing.parser, settings.parsing.marker)
 
         assert isinstance(parser, MarkerParser)

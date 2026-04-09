@@ -21,7 +21,7 @@ Note: Environment variables with double underscores (e.g., OPTIMIZATION__NUM_TRI
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, Literal, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field, SecretStr, field_validator, model_validator
@@ -285,9 +285,9 @@ class LLMInstanceConfig(BaseModel):
         ...,
         description="Model name/identifier"
     )
-    timeout: int = Field(
-        ...,
-        description="Request timeout in seconds (used by ollama/api, ignored by transformers)"
+    timeout: Optional[int] = Field(
+        default=None,
+        description="Request timeout in seconds (required for ollama/api, ignored for transformers)"
     )
     max_retries: int = Field(
         ...,
@@ -295,40 +295,86 @@ class LLMInstanceConfig(BaseModel):
     )
     temperature: float = Field(
         ...,
-        description="Sampling temperature for generation"
+        description="Sampling temperature for generation (>= 0)"
     )
-    rate_limit_delay: float = Field(
-        ...,
-        description="Delay in seconds between API calls for rate limiting"
+    rate_limit_delay: Optional[float] = Field(
+        default=None,
+        description="Delay in seconds between API calls (required for ollama/api, ignored for transformers)"
     )
     top_p: float = Field(
         ...,
-        description="Nucleus sampling top-p parameter"
+        description="Nucleus sampling top-p parameter (0.0 < value <= 1.0)"
     )
     enable_cache: bool = Field(
         ...,
         description="Enable LLM response caching"
     )
 
-    ollama: OllamaConfig = Field(default_factory=OllamaConfig)  # type: ignore[arg-type]
-    api: ApiConfig = Field(default_factory=ApiConfig)  # type: ignore[arg-type]
-    transformers: TransformersConfig = Field(default_factory=TransformersConfig)
+    ollama: Optional[OllamaConfig] = Field(
+        default=None,
+        description="Ollama-specific configuration (required when provider='ollama')"
+    )
+    api: Optional[ApiConfig] = Field(
+        default=None,
+        description="API provider configuration (required when provider='api')"
+    )
+    transformers: TransformersConfig = Field(
+        default_factory=TransformersConfig,
+        description="HuggingFace Transformers configuration"
+    )
+
+    @field_validator("temperature", mode="after")
+    @classmethod
+    def validate_temperature(cls, v: float) -> float:
+        """Temperature must be non-negative."""
+        if v < 0:
+            raise ValueError(f"temperature must be >= 0, got {v}")
+        return v
+
+    @field_validator("top_p", mode="after")
+    @classmethod
+    def validate_top_p(cls, v: float) -> float:
+        """top_p must be in range (0.0, 1.0]."""
+        if v <= 0.0 or v > 1.0:
+            raise ValueError(f"top_p must be in range (0.0, 1.0], got {v}")
+        return v
 
     @model_validator(mode="after")
     def validate_provider_config(self) -> "LLMInstanceConfig":
         """Validate provider-specific requirements."""
         if self.provider == "ollama":
+            if self.timeout is None:
+                raise ValueError("timeout is required when provider='ollama'")
+            if self.rate_limit_delay is None:
+                raise ValueError("rate_limit_delay is required when provider='ollama'")
+            if self.ollama is None:
+                raise ValueError(
+                    "ollama configuration is required when provider='ollama'. "
+                    "Add an 'ollama' section with num_ctx, num_predict, "
+                    "repeat_penalty, repeat_last_n, stream, and set the "
+                    "OLLAMA_*_BASE_URL environment variable."
+                )
             if not self.ollama.ollama_base_url:
                 raise ValueError(
                     "Ollama URL must be set via OLLAMA_*_BASE_URL env var when provider='ollama'"
                 )
         elif self.provider == "api":
+            if self.timeout is None:
+                raise ValueError("timeout is required when provider='api'")
+            if self.rate_limit_delay is None:
+                raise ValueError("rate_limit_delay is required when provider='api'")
+            if self.api is None:
+                raise ValueError(
+                    "api configuration is required when provider='api'. "
+                    "Add an 'api' section with max_tokens and set the "
+                    "appropriate API key environment variable."
+                )
             if self.api.api_key is None:
                 raise ValueError(
                     "API key must be set for API provider. "
                     "Set OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY in .env file."
                 )
-        # transformers: no extra validation, defaults are safe
+        # transformers: timeout and rate_limit_delay are optional, defaults are safe
         return self
 
 
@@ -507,22 +553,6 @@ class OptimizationConfig(BaseModel):
     )
 
 
-class EvaluationConfig(BaseModel):
-    """Evaluation configuration."""
-    float_tolerance: float = Field(
-        ...,
-        description="Tolerance for comparing floating-point values"
-    )
-    compare_fields: List[str] = Field(
-        ...,
-        description="List of field names to compare during evaluation"
-    )
-    enable_semantic_judge: bool = Field(
-        default=True,
-        description="Enable semantic judge for evaluation (default: True)"
-    )
-
-
 class TaskConfig(BaseModel):
     """Task-specific configuration."""
     name: str = Field(
@@ -533,7 +563,6 @@ class TaskConfig(BaseModel):
         ...,
         description="Path to initial instruction file for DSPy optimization"
     )
-    evaluation: EvaluationConfig = Field(...)
 
     @field_validator("initial_instruction_file", mode="before")
     @classmethod
@@ -888,25 +917,26 @@ class Settings(BaseSettings):
                 api_key = get_api_key_for_model(model_name)
 
             if api_key:
-                if "api" not in component_data:
-                    component_data["api"] = {}
-                component_data["api"]["api_key"] = api_key
+                if "api" in component_data:
+                    component_data["api"]["api_key"] = api_key
 
-                # Determine key source for logging
-                key_source = "Unknown"
-                if api_key == openai_key:
-                    key_source = "OpenAI"
-                elif api_key == anthropic_key:
-                    key_source = "Anthropic"
-                elif api_key == gemini_key:
-                    key_source = "Gemini"
-                elif api_key == openrouter_key:
-                    key_source = "OpenRouter"
+                    # Determine key source for logging
+                    key_source = "Unknown"
+                    if api_key == openai_key:
+                        key_source = "OpenAI"
+                    elif api_key == anthropic_key:
+                        key_source = "Anthropic"
+                    elif api_key == gemini_key:
+                        key_source = "Gemini"
+                    elif api_key == openrouter_key:
+                        key_source = "OpenRouter"
+                    else:
+                        key_source = "HuggingFace"
+
+                    source_info = f"base_url: {base_url}" if base_url else f"model prefix: {model_name}"
+                    logger.info(f"Using {key_source} API key for {component_name}: {model_name} ({source_info})")
                 else:
-                    key_source = "HuggingFace"
-
-                source_info = f"base_url: {base_url}" if base_url else f"model prefix: {model_name}"
-                logger.info(f"Using {key_source} API key for {component_name}: {model_name} ({source_info})")
+                    logger.warning(f"No api section in YAML for {component_name}: {model_name}, skipping API key injection")
             else:
                 logger.warning(f"No API key found for {component_name}: {model_name}")
 
@@ -953,33 +983,31 @@ class Settings(BaseSettings):
         ollama_student_url = os.getenv("OLLAMA_STUDENT_BASE_URL")
         ollama_teacher_url = os.getenv("OLLAMA_TEACHER_BASE_URL")
 
-        # Validate and apply student URL only if provider='ollama'
+        # Apply student URL only if ollama section exists in YAML
         if student_uses_ollama:
             if not ollama_student_url or ollama_student_url.strip() == "":
                 raise ValueError(
                     "OLLAMA_STUDENT_BASE_URL environment variable must be set in .env file when provider='ollama' for student"
                 )
-            if "llm" not in config_data:
-                config_data["llm"] = {}
-            if "student" not in config_data["llm"]:
-                config_data["llm"]["student"] = {}
-            if "ollama" not in config_data["llm"]["student"]:
-                config_data["llm"]["student"]["ollama"] = {}
-            config_data["llm"]["student"]["ollama"]["ollama_base_url"] = ollama_student_url.strip()
+            if "ollama" in config_data.get("llm", {}).get("student", {}):
+                if "llm" not in config_data:
+                    config_data["llm"] = {}
+                if "student" not in config_data["llm"]:
+                    config_data["llm"]["student"] = {}
+                config_data["llm"]["student"]["ollama"]["ollama_base_url"] = ollama_student_url.strip()
 
-        # Validate and apply teacher URL only if provider='ollama'
+        # Apply teacher URL only if ollama section exists in YAML
         if teacher_uses_ollama:
             if not ollama_teacher_url or ollama_teacher_url.strip() == "":
                 raise ValueError(
                     "OLLAMA_TEACHER_BASE_URL environment variable must be set in .env file when provider='ollama' for teacher"
                 )
-            if "llm" not in config_data:
-                config_data["llm"] = {}
-            if "teacher" not in config_data["llm"]:
-                config_data["llm"]["teacher"] = {}
-            if "ollama" not in config_data["llm"]["teacher"]:
-                config_data["llm"]["teacher"]["ollama"] = {}
-            config_data["llm"]["teacher"]["ollama"]["ollama_base_url"] = ollama_teacher_url.strip()
+            if "ollama" in config_data.get("llm", {}).get("teacher", {}):
+                if "llm" not in config_data:
+                    config_data["llm"] = {}
+                if "teacher" not in config_data["llm"]:
+                    config_data["llm"]["teacher"] = {}
+                config_data["llm"]["teacher"]["ollama"]["ollama_base_url"] = ollama_teacher_url.strip()
 
     @classmethod
     def _resolve_paths(cls, config_data: dict, base_dir: Path) -> dict:

@@ -124,29 +124,6 @@ optimization:
 task:
   name: "nanozymes"
   initial_instruction_file: "config/initial_instructions/nanozymes_sota.txt"
-  evaluation:
-    compare_fields:
-      - formula
-      - activity
-      - reaction_type
-      - ph
-      - temperature
-      - surface
-      - syngony
-      - length
-      - width
-      - depth
-      - km_value
-      - vmax_value
-      - c_min
-      - c_max
-      - c_const
-      - ccat_value
-      - km_unit
-      - vmax_unit
-      - c_const_unit
-      - ccat_unit
-    float_tolerance: 0.05
 
 extraction:
   enable_cache: false
@@ -301,45 +278,24 @@ paths:
 
 ### Task Configuration
 
-Task configuration in YAML uses a nested structure under `task.evaluation.*`:
+The system config `task` section only references which task to load and where to find
+the initial instruction file. The actual extraction field definitions (`compare_fields`,
+`float_tolerance`, field specs) live in the **task YAML** (`config/tasks/{name}.yaml`).
 
 ```yaml
 # config/systems/example.yaml
 task:
-  name: "nanozymes"
-  initial_instruction_file: "config/initial_instructions/nanozymes_sota.txt"  # REQUIRED (relative to project root)
-  evaluation:
-    compare_fields:            # Fields for evaluation - REQUIRED
-      - formula
-      - activity
-      - syngony
-      - surface
-      - length
-      - width
-      - depth
-      - reaction_type
-      - km_value
-      - km_unit
-      - vmax_value
-      - vmax_unit
-      - ph
-      - temperature
-      - c_min
-      - c_max
-      - c_const
-      - c_const_unit
-      - ccat_value
-      - ccat_unit
-    float_tolerance: 0.05      # 5% tolerance for floats - REQUIRED
+  name: "nanozymes"                                        # Must match config/tasks/nanozymes.yaml
+  initial_instruction_file: "config/initial_instructions/nanozymes_sota.txt"  # Required
 ```
 
 **Fields:**
-- `name` — Task identifier (must match task config in `config/tasks/{task_name}.yaml`)
+- `name` — Task identifier (must match a task config in `config/tasks/{task_name}.yaml`)
 - `initial_instruction_file` — Path to initial instruction file for DSPy optimization, relative to project root (**required**)
-- `evaluation.compare_fields` — List of field names used for evaluation during optimization (**required**)
-- `evaluation.float_tolerance` — Tolerance for floating-point comparisons (0.0 to 1.0) (**required**)
 
-**Note on `float_tolerance`:** This field is required for backward compatibility but is no longer used in current metric calculations.
+> **Note:** `compare_fields` and `float_tolerance` are defined in the task YAML file
+> (`config/tasks/{name}.yaml`), NOT in the system config. See [Adding Tasks](docs/adding_tasks.md)
+> for details.
 
 ### Parsing Configuration
 
@@ -435,9 +391,7 @@ llm:
     provider: "transformers"
     model: "Qwen/Qwen2.5-7B-Instruct"
     temperature: 0.0
-    timeout: 600
     max_retries: 5
-    rate_limit_delay: 0.0
     top_p: 0.1
     enable_cache: true
 
@@ -451,6 +405,10 @@ llm:
       repetition_penalty: 1.2
       no_repeat_ngram_size: 0
 ```
+
+> **Note:** For `provider: "transformers"`, the `timeout` and `rate_limit_delay` fields
+> are optional (not needed for local inference). They are only required for
+> `provider: "ollama"` or `provider: "api"`.
 
 **Transformers settings reference:**
 

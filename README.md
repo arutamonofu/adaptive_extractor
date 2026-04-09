@@ -27,3 +27,13 @@ AutoEvoExtractor automatically extracts structured experimental data from scient
 - **Core dependencies:** dspy-ai, pydantic, pandas, mlflow, marker-pdf
 
 [Full list →](pyproject.toml)
+
+## Compatibility
+
+| Component | Notes |
+|---|---|
+| `transformers >= 5.0` | Supports `qwen3_5` architecture. Required for Qwen 3.5 models. |
+| `marker-pdf` | Requires `transformers < 5.0`. Incompatible with transformers 5.x due to removed `transformers.onnx`. |
+| `parser: "gemini"` | Does not import `marker`. Works with any transformers version. |
+
+When using `transformers >= 5.0`, marker-related tests are automatically skipped.

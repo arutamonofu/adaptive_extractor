@@ -122,7 +122,7 @@ class TestExtractFlow:
 
     def test_extraction_with_empty_agent(self, extraction_test_setup):
         """Test extraction handles empty/minimal agent gracefully."""
-        from aee.infrastructure.storage.agents import AgentRepository
+        from aee.infrastructure.storage import AgentRepository
 
         repo = AgentRepository(agents_dir=extraction_test_setup["agents_dir"])
 
@@ -136,7 +136,7 @@ class TestExtractFlow:
 
     def test_document_loading_for_extraction(self, extraction_test_setup):
         """Test loading documents for extraction."""
-        from aee.infrastructure.storage.documents import DocumentRepository
+        from aee.infrastructure.storage import DocumentRepository
 
         repo = DocumentRepository(parsed_dir=extraction_test_setup["parsed_dir"])
 

@@ -6,10 +6,7 @@ import math
 import re
 from typing import Any, Dict, List, Optional, Tuple, TypeAlias, Union
 
-import numpy as np
 from pydantic import BaseModel
-from scipy.optimize import linear_sum_assignment
-from tabulate import tabulate  # type: ignore[import-untyped]
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +132,9 @@ class ExperimentMatcher:
         Returns:
             List of aligned pairs (pred, gt), with None for unaligned entities.
         """
+        import numpy as np
+        from scipy.optimize import linear_sum_assignment
+
         # Handle edge cases
         if not preds and not gts:
             return []
@@ -349,6 +349,8 @@ Respond with JSON only:"""
             discrepancies: List of field names with discrepancies.
             verdicts: Dictionary mapping field names to judge verdicts (YES/NO).
         """
+        from tabulate import tabulate  # type: ignore[import-untyped]
+
         table_data = []
 
         for field in self.fields:

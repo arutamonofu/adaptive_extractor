@@ -11,7 +11,7 @@ Tests cover:
 
 import pytest
 
-from aee.domain.evaluation.matcher import ExperimentMatcher
+from aee.domain.evaluation import ExperimentMatcher
 
 
 @pytest.mark.unit

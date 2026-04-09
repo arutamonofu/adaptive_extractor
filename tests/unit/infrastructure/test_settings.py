@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from aee.infrastructure.config.settings import Settings
+from aee import Settings
 
 
 class TestApiConfig:
@@ -13,7 +13,7 @@ class TestApiConfig:
 
     def test_api_config_with_base_url(self):
         """Test ApiConfig accepts base_url field."""
-        from aee.infrastructure.config.settings import ApiConfig
+        from aee.infrastructure.config import ApiConfig
 
         config = ApiConfig(
             api_key="test-key",
@@ -27,7 +27,7 @@ class TestApiConfig:
 
     def test_api_config_without_base_url(self):
         """Test ApiConfig works without base_url (optional field)."""
-        from aee.infrastructure.config.settings import ApiConfig
+        from aee.infrastructure.config import ApiConfig
 
         config = ApiConfig(
             api_key="test-key",
@@ -43,7 +43,7 @@ class TestSettingsOpenRouter:
 
     def test_openrouter_api_key_field_exists(self):
         """Test Settings class has openrouter_api_key field."""
-        from aee.infrastructure.config.settings import Settings
+        from aee import Settings
 
         # Check field exists in model fields
         assert "openrouter_api_key" in Settings.model_fields
@@ -72,10 +72,6 @@ paths:
 task:
   name: test
   initial_instruction_file: {tmp_path}/instruction.txt
-  evaluation:
-    compare_fields:
-      - field1
-    float_tolerance: 0.1
 llm:
   student:
     provider: "api"
@@ -182,10 +178,6 @@ paths:
 task:
   name: test
   initial_instruction_file: {tmp_path}/instruction.txt
-  evaluation:
-    compare_fields:
-      - field1
-    float_tolerance: 0.1
 llm:
   student:
     provider: "ollama"
@@ -305,10 +297,6 @@ paths:
 task:
   name: test
   initial_instruction_file: {tmp_path}/instruction.txt
-  evaluation:
-    compare_fields:
-      - field1
-    float_tolerance: 0.1
 llm:
   student:
     provider: "api"

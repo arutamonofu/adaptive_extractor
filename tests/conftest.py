@@ -37,9 +37,12 @@ def nanozyme_task(tmp_nanozymes_task_yaml: Path, nanozyme_test_instruction_path:
         Dictionary with task components (config, experiment_model, output_model, row_converter).
         Note: signature is created lazily on first access as it requires instruction file.
     """
-    from aee.domain.tasks import load_task_from_yaml
-    from aee.domain.tasks.dynamic_models import create_all_models, create_row_converter
-    from aee.domain.tasks.signature import create_signature
+    from aee.domain.tasks import (
+        load_task_from_yaml,
+        create_all_models,
+        create_row_converter,
+        create_signature,
+    )
 
     # Load task from temporary YAML (without instruction file initially)
     config = load_task_from_yaml(tmp_nanozymes_task_yaml)
@@ -598,11 +601,6 @@ paths:
 task:
   name: nanozymes
   initial_instruction_file: {tmp_instruction_file}
-  evaluation:
-    compare_fields:
-      - formula
-      - activity
-    float_tolerance: 0.1
 llm:
   student:
     provider: "ollama"
@@ -1003,11 +1001,6 @@ optimization:
 task:
   name: "nanozymes"
   initial_instruction_file: "${INSTRUCTION_FILE_PATH}"
-  evaluation:
-    compare_fields:
-      - "formula"
-      - "activity"
-    float_tolerance: 0.1
 
 extraction:
   enable_cache: false

@@ -12,7 +12,7 @@ Tests cover:
 import time
 import pytest
 
-from aee.infrastructure.llm.circuit_breaker import (
+from aee.infrastructure.llm import (
     CircuitBreaker,
     CircuitBreakerError,
     CircuitState,

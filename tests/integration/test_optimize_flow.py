@@ -158,7 +158,7 @@ class TestOptimizeAgentUseCase:
         with patch("aee.application.use_cases.optimize_agent.MIPROv2") as mock_mipro:
             # Create mock optimized agent (spec=SerializableAgent ensures
             # the mock passes isinstance checks with @runtime_checkable Protocol)
-            from aee.application.services.agent_manager import SerializableAgent
+            from aee.application.services import SerializableAgent
             mock_optimized_agent = MagicMock(spec=SerializableAgent)
             mock_optimized_agent.dump_state.return_value = {
                 "lm": {"model": "test-model"},

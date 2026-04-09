@@ -105,9 +105,6 @@ paths:
 task:
   name: invalid_task
   initial_instruction_file: {instruction_file}
-  evaluation:
-    compare_fields: [formula]
-    float_tolerance: 0.1
 llm:
   student:
     provider: "ollama"
@@ -211,9 +208,6 @@ paths:
 task:
   name: nanozymes
   initial_instruction_file: {instruction_file}
-  evaluation:
-    compare_fields: [formula]
-    float_tolerance: 0.1
 llm:
   student:
     provider: "ollama"

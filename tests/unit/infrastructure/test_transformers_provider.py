@@ -6,14 +6,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 import torch
 
-from aee.infrastructure.config.settings import (
+from aee.infrastructure.config import (
     LLMInstanceConfig,
     OllamaConfig,
     ApiConfig,
     TransformersConfig,
 )
-from aee.infrastructure.llm.circuit_breaker import CircuitBreaker, CircuitBreakerError
-from aee.infrastructure.llm.provider import TransformersLM
+from aee.infrastructure.llm import CircuitBreaker, CircuitBreakerError
+from aee.infrastructure.llm import TransformersLM
 
 
 # =============================================================================
@@ -658,7 +658,7 @@ class TestCreateLM:
 
         TransformersLM.clear_cache()
 
-        from aee.infrastructure.llm.provider import create_lm
+        from aee.infrastructure.llm import create_lm
 
         lm = create_lm(
             transformers_config,
