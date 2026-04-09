@@ -187,6 +187,10 @@ class OllamaTeacherConfig(OllamaConfig):
 
 class TransformersConfig(BaseModel):
     """HuggingFace Transformers local inference configuration."""
+    hf_token: Optional[str] = Field(
+        default=None,
+        description="HuggingFace API token for gated models (from env HUGGINGFACE_TOKEN)"
+    )
     device_map: str = Field(
         default="auto",
         description="Device mapping strategy: 'auto', 'cuda', 'cpu'"
@@ -953,6 +957,7 @@ class Settings(BaseSettings):
         """Apply environment variable overrides to config data.
 
         Ollama URLs are read from environment variables only (NOT from YAML).
+        HuggingFace token is read from HUGGINGFACE_TOKEN env var.
         This method modifies config_data in place.
 
         Note: Ollama URLs must be set in .env file. No fallback is provided.
@@ -960,6 +965,7 @@ class Settings(BaseSettings):
         Env vars applied:
             - OLLAMA_STUDENT_BASE_URL: Student Ollama server URL (required when provider='ollama' for student)
             - OLLAMA_TEACHER_BASE_URL: Teacher Ollama server URL (required when provider='ollama' for teacher)
+            - HUGGINGFACE_TOKEN: HuggingFace API token for gated models
 
         Args:
             config_data: Configuration dictionary to update.
@@ -967,6 +973,16 @@ class Settings(BaseSettings):
         Raises:
             ValueError: If required Ollama URL is not set in environment when provider='ollama'.
         """
+        # Apply HuggingFace token to all transformers configs (student/teacher)
+        hf_token = os.getenv("HUGGINGFACE_TOKEN")
+        if hf_token:
+            for component in ("student", "teacher"):
+                llm_section = config_data.get("llm", {}).get(component, {})
+                if llm_section.get("provider") == "transformers":
+                    if "transformers" not in llm_section:
+                        llm_section["transformers"] = {}
+                    llm_section["transformers"]["hf_token"] = hf_token.strip()
+
         # Check if Ollama is used for student and teacher
         student_uses_ollama = (
             config_data.get("llm", {})

@@ -216,6 +216,84 @@ class TestTransformersLM:
 
     @patch("transformers.AutoModelForCausalLM")
     @patch("transformers.AutoTokenizer")
+    def test_hf_token_passed_to_from_pretrained(
+        self, mock_tokenizer_cls, mock_model_cls, circuit_breaker
+    ):
+        """Test that hf_token is passed to from_pretrained when configured."""
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.pad_token_id = 50256
+        mock_tokenizer_cls.from_pretrained.return_value = mock_tokenizer
+
+        mock_model = MagicMock()
+        mock_model.device = "cpu"
+        mock_model.parameters.return_value = [MagicMock(device="cpu")]
+        mock_model_cls.from_pretrained.return_value = mock_model
+
+        config_with_token = LLMInstanceConfig(
+            provider="transformers",
+            model="test-model",
+            timeout=600,
+            max_retries=2,
+            temperature=0.5,
+            rate_limit_delay=0.0,
+            top_p=0.9,
+            enable_cache=True,
+            ollama=OllamaConfig(
+                num_ctx=8192,
+                num_predict=2048,
+                repeat_penalty=1.1,
+                repeat_last_n=512,
+                stream=False,
+            ),
+            api=ApiConfig(max_tokens=4096),
+            transformers=TransformersConfig(
+                hf_token="hf_test_token_12345",
+                device_map="auto",
+                torch_dtype="float16",
+                max_new_tokens=4096,
+            ),
+        )
+
+        TransformersLM.clear_cache()
+
+        TransformersLM(config_with_token, circuit_breaker=circuit_breaker)
+
+        # Verify token was passed to both calls
+        tokenizer_call_kwargs = mock_tokenizer_cls.from_pretrained.call_args[1]
+        model_call_kwargs = mock_model_cls.from_pretrained.call_args[1]
+
+        assert tokenizer_call_kwargs["token"] == "hf_test_token_12345"
+        assert model_call_kwargs["token"] == "hf_test_token_12345"
+
+    @patch("transformers.AutoModelForCausalLM")
+    @patch("transformers.AutoTokenizer")
+    def test_works_without_hf_token(self, mock_tokenizer_cls, mock_model_cls, transformers_config):
+        """Test model loads successfully without hf_token (token=None)."""
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.pad_token_id = 50256
+        mock_tokenizer_cls.from_pretrained.return_value = mock_tokenizer
+
+        mock_model = MagicMock()
+        mock_model.device = "cpu"
+        mock_model.parameters.return_value = [MagicMock(device="cpu")]
+        mock_model_cls.from_pretrained.return_value = mock_model
+
+        TransformersLM.clear_cache()
+
+        lm = TransformersLM(transformers_config)
+
+        assert lm.model is not None
+        assert lm.tokenizer is not None
+
+        # Verify token=None was passed (default from config)
+        tokenizer_call_kwargs = mock_tokenizer_cls.from_pretrained.call_args[1]
+        model_call_kwargs = mock_model_cls.from_pretrained.call_args[1]
+
+        assert tokenizer_call_kwargs["token"] is None
+        assert model_call_kwargs["token"] is None
+
+    @patch("transformers.AutoModelForCausalLM")
+    @patch("transformers.AutoTokenizer")
     def test_shared_cache(self, mock_tokenizer_cls, mock_model_cls, transformers_config):
         """Test two instances share the same model (class-level cache)."""
         mock_tokenizer = MagicMock()

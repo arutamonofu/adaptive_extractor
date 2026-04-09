@@ -514,6 +514,7 @@ class TransformersLM(BaseLMProvider):
 
         tokenizer = AutoTokenizer.from_pretrained(
             model_name,
+            token=config.hf_token,
             trust_remote_code=config.trust_remote_code,
         )
 
@@ -531,6 +532,7 @@ class TransformersLM(BaseLMProvider):
 
         model = AutoModelForCausalLM.from_pretrained(
             model_name,
+            token=config.hf_token,
             **load_kwargs,
         )
 

@@ -414,6 +414,7 @@ llm:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
+| `hf_token` | `None` | HuggingFace token for gated models (from env `HUGGINGFACE_TOKEN`) |
 | `device_map` | `"auto"` | Device mapping: `"auto"`, `"cuda"`, `"cpu"` |
 | `torch_dtype` | `"float16"` | Tensor dtype: `"float16"`, `"bfloat16"`, `"float32"` |
 | `load_in_4bit` | `false` | Enable 4-bit quantization (requires `bitsandbytes`) |
@@ -427,7 +428,7 @@ llm:
 **Important notes:**
 - Models are loaded **once** and cached at the class level. Subsequent `copy()` calls (used by DSPy during MIPROv2 bootstrapping) reuse the cached model instead of duplicating weights in VRAM — this prevents OOM errors during optimization
 - The `timeout` field is converted to `max_time` for `model.generate()` (Transformers built-in mechanism)
-- No environment variables are required — models are downloaded automatically from HuggingFace Hub
+- For gated models (e.g., Meta Llama), set the `HUGGINGFACE_TOKEN` environment variable in your `.env` file (see [Environment Variables](#environment-variables) below)
 - For models with custom architectures (e.g., Qwen), set `trust_remote_code: true`
 
 **Recommended models:**
@@ -508,6 +509,15 @@ export GEMINI_API_KEY="your_api_key_here"
 export MLFLOW_TRACKING_URI="sqlite:///mlflow.db"    # MLflow tracking URI
 export DSPY_CACHE_DIR="${HOME}/.cache/dspy"         # DSPy cache directory
 ```
+
+### HuggingFace
+
+**For gated model access (e.g., Meta Llama):**
+```bash
+export HUGGINGFACE_TOKEN="hf_your_token_here"
+```
+
+> **Note:** Required when using `provider: "transformers"` with gated models from HuggingFace Hub. Get your token at https://huggingface.co/settings/tokens.
 
 ### Environment Selection
 
