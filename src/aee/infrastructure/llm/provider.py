@@ -444,9 +444,12 @@ class TransformersLM(BaseLMProvider):
         self.transformers_config = config.transformers
         self.max_new_tokens = self.transformers_config.max_new_tokens
 
-        # Load or get model (self.model becomes the model object, self.model_name keeps the string)
+        # Store model name string in self.model_name for DSPy adapters
+        # DSPy's JSONAdapter expects self.model to be a string like "qwen/qwen3.5-0.8b"
         self.model_name: str = config.model
-        self.model, self.tokenizer = self._load_or_get_model(
+
+        # Store PyTorch model in _torch_model to avoid conflicting with DSPy's lm.model
+        self._torch_model, self.tokenizer = self._load_or_get_model(
             config.model, self.transformers_config
         )
 
@@ -498,17 +501,41 @@ class TransformersLM(BaseLMProvider):
         }
         torch_dtype = dtype_map.get(config.torch_dtype, torch.float16)
 
-        load_kwargs = {
+        load_kwargs: Dict[str, Any] = {
             "device_map": config.device_map,
             "torch_dtype": torch_dtype,
             "trust_remote_code": config.trust_remote_code,
             "attn_implementation": config.attn_implementation,
         }
 
-        if config.load_in_4bit or config.load_in_8bit:
-            load_kwargs["load_in_4bit"] = config.load_in_4bit
-            load_kwargs["load_in_8bit"] = config.load_in_8bit
+        if config.quantization is not None:
+            try:
+                from transformers import BitsAndBytesConfig
+            except ImportError:  # pragma: no cover
+                raise ImportError(
+                    "bitsandbytes is required for quantization. "
+                    "Install it with: pip install bitsandbytes"
+                )
+
+            if config.quantization == "4bit":
+                compute_dtype_str = config.bnb_4bit_compute_dtype or config.torch_dtype
+                compute_dtype = dtype_map.get(compute_dtype_str, torch.float16)
+                quantization_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_compute_dtype=compute_dtype,
+                    bnb_4bit_quant_type=config.bnb_4bit_quant_type,
+                    bnb_4bit_use_double_quant=config.bnb_4bit_use_double_quant,
+                )
+            else:  # 8bit
+                quantization_config = BitsAndBytesConfig(
+                    load_in_8bit=True,
+                )
+
+            load_kwargs["quantization_config"] = quantization_config
             del load_kwargs["torch_dtype"]
+            actual_dtype = "4-bit" if config.quantization == "4bit" else "8-bit"
+        else:
+            actual_dtype = config.torch_dtype
 
         logger.info("Loading model weights... (this may take 1-5 minutes)")
 
@@ -545,7 +572,7 @@ class TransformersLM(BaseLMProvider):
 
         logger.info(
             f"Model {model_name} loaded successfully "
-            f"(device: {device}, dtype: {config.torch_dtype})"
+            f"(device: {device}, dtype: {actual_dtype})"
         )
 
         return model, tokenizer
@@ -563,11 +590,17 @@ class TransformersLM(BaseLMProvider):
 
         messages = self._normalize_prompt(prompt)
 
-        input_ids = self.tokenizer.apply_chat_template(
-            messages, return_tensors="pt"
-        ).to(self.model.device)  # type: ignore[attr-defined]
+        encoded = self.tokenizer.apply_chat_template(
+            messages,
+            return_tensors="pt",
+            add_generation_prompt=True,
+            return_dict=True,
+        )
+        # Extract input_ids and attention_mask from BatchEncoding
+        input_ids = encoded.input_ids.to(self._torch_model.device)
+        attention_mask = encoded.attention_mask.to(self._torch_model.device)
 
-        output_ids = self._generate(input_ids, **kwargs)
+        output_ids = self._generate(input_ids, attention_mask=attention_mask, **kwargs)
 
         response = self.tokenizer.decode(
             output_ids[0][input_ids.shape[1]:], skip_special_tokens=True
@@ -576,7 +609,12 @@ class TransformersLM(BaseLMProvider):
         self._update_history(messages, response, kwargs)
         return [response]
 
-    def _generate(self, input_ids: Any, **kwargs) -> Any:
+    def _generate(
+        self,
+        input_ids: Any,
+        attention_mask: Optional[Any] = None,
+        **kwargs,
+    ) -> Any:
         """Generate with circuit breaker, timeout, and OOM protection."""
         import torch
 
@@ -590,9 +628,13 @@ class TransformersLM(BaseLMProvider):
                     "pad_token_id": self.tokenizer.pad_token_id,
                 }
 
+                # Pass attention mask if provided
+                if attention_mask is not None:
+                    generate_kwargs["attention_mask"] = attention_mask
+
                 # Use timeout from config via transformers' built-in max_time (seconds)
                 timeout = self._config.timeout
-                if timeout > 0:
+                if timeout is not None and timeout > 0:
                     generate_kwargs["max_time"] = timeout
 
                 # Repetition control (native transformers parameters)
@@ -605,7 +647,7 @@ class TransformersLM(BaseLMProvider):
                         self.transformers_config.no_repeat_ngram_size
                     )
 
-                return self.model.generate(input_ids, **generate_kwargs)
+                return self._torch_model.generate(input_ids, **generate_kwargs)
 
         def _wrapped_generate():
             try:

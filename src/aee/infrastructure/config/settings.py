@@ -199,13 +199,22 @@ class TransformersConfig(BaseModel):
         default="float16",
         description="Tensor dtype: 'float16', 'bfloat16', 'float32'"
     )
-    load_in_4bit: bool = Field(
-        default=False,
-        description="Enable 4-bit quantization (requires bitsandbytes)"
+    quantization: Optional[str] = Field(
+        default=None,
+        description="Quantization mode: '4bit', '8bit', or None (requires bitsandbytes)"
     )
-    load_in_8bit: bool = Field(
-        default=False,
-        description="Enable 8-bit quantization (requires bitsandbytes)"
+    bnb_4bit_compute_dtype: Optional[str] = Field(
+        default=None,
+        description="Compute dtype for 4-bit quantization: 'float16', 'bfloat16', 'float32'. "
+        "Defaults to torch_dtype if not set."
+    )
+    bnb_4bit_quant_type: str = Field(
+        default="nf4",
+        description="4-bit quantization type: 'nf4' (NormalFloat4) or 'fp4' (Float4)"
+    )
+    bnb_4bit_use_double_quant: bool = Field(
+        default=True,
+        description="Enable double quantization for 4-bit (extra memory savings)"
     )
     trust_remote_code: bool = Field(
         default=False,
@@ -229,6 +238,34 @@ class TransformersConfig(BaseModel):
         description="Prevent exact n-gram repetition during generation. "
         "Set to 0 to disable, or >= 2 to prevent n-gram repeats. Recommended: 3."
     )
+
+    @field_validator("quantization")
+    @classmethod
+    def _validate_quantization(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in ("4bit", "8bit"):
+            raise ValueError(
+                f"quantization must be '4bit', '8bit', or None, got '{v}'"
+            )
+        return v
+
+    @field_validator("bnb_4bit_quant_type")
+    @classmethod
+    def _validate_quant_type(cls, v: str) -> str:
+        if v not in ("nf4", "fp4"):
+            raise ValueError(
+                f"bnb_4bit_quant_type must be 'nf4' or 'fp4', got '{v}'"
+            )
+        return v
+
+    @field_validator("bnb_4bit_compute_dtype")
+    @classmethod
+    def _validate_bnb_dtype(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in ("float16", "bfloat16", "float32"):
+            raise ValueError(
+                "bnb_4bit_compute_dtype must be 'float16', 'bfloat16', or 'float32', "
+                f"got '{v}'"
+            )
+        return v
 
 
 class ApiConfig(BaseModel):

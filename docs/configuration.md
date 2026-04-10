@@ -196,8 +196,9 @@ llm:
     transformers:
       device_map: "auto"          # Device mapping: "auto", "cuda", "cpu"
       torch_dtype: "float16"      # Tensor dtype: "float16", "bfloat16", "float32"
-      load_in_4bit: false         # Enable 4-bit quantization (requires bitsandbytes)
-      load_in_8bit: false         # Enable 8-bit quantization (requires bitsandbytes)
+      quantization: null           # Quantization: "4bit", "8bit", or null
+      bnb_4bit_quant_type: "nf4"  # 4-bit quant type: "nf4" or "fp4"
+      bnb_4bit_use_double_quant: true  # Double quantization for 4-bit
       trust_remote_code: false    # Required for some models like Qwen
       max_new_tokens: 4096        # Max tokens to generate
       attn_implementation: "sdpa" # Attention: "sdpa", "flash_attention_2", "eager"
@@ -230,8 +231,9 @@ llm:
     transformers:
       device_map: "auto"          # Device mapping: "auto", "cuda", "cpu"
       torch_dtype: "float16"      # Tensor dtype
-      load_in_4bit: false         # Enable 4-bit quantization
-      load_in_8bit: false         # Enable 8-bit quantization
+      quantization: null           # Quantization: "4bit", "8bit", or null
+      bnb_4bit_quant_type: "nf4"  # 4-bit quant type
+      bnb_4bit_use_double_quant: true
       trust_remote_code: false    # Required for some models like Qwen
       max_new_tokens: 8192        # Max tokens to generate
       attn_implementation: "sdpa" # Attention implementation
@@ -398,7 +400,9 @@ llm:
     transformers:
       device_map: "auto"
       torch_dtype: "float16"
-      load_in_4bit: true
+      quantization: "4bit"
+      bnb_4bit_quant_type: "nf4"
+      bnb_4bit_use_double_quant: true
       trust_remote_code: true
       max_new_tokens: 4096
       attn_implementation: "sdpa"
@@ -417,8 +421,10 @@ llm:
 | `hf_token` | `None` | HuggingFace token for gated models (from env `HUGGINGFACE_TOKEN`) |
 | `device_map` | `"auto"` | Device mapping: `"auto"`, `"cuda"`, `"cpu"` |
 | `torch_dtype` | `"float16"` | Tensor dtype: `"float16"`, `"bfloat16"`, `"float32"` |
-| `load_in_4bit` | `false` | Enable 4-bit quantization (requires `bitsandbytes`) |
-| `load_in_8bit` | `false` | Enable 8-bit quantization (requires `bitsandbytes`) |
+| `quantization` | `None` | Quantization mode: `"4bit"`, `"8bit"`, or `None` (requires `bitsandbytes`) |
+| `bnb_4bit_compute_dtype` | `None` | Compute dtype for 4-bit; defaults to `torch_dtype` |
+| `bnb_4bit_quant_type` | `"nf4"` | 4-bit quant type: `"nf4"` (NormalFloat4) or `"fp4"` (Float4) |
+| `bnb_4bit_use_double_quant` | `true` | Enable double quantization for 4-bit (extra memory savings) |
 | `trust_remote_code` | `false` | Allow remote code execution (required for Qwen, etc.) |
 | `max_new_tokens` | `4096` | Maximum tokens to generate |
 | `attn_implementation` | `"sdpa"` | Attention: `"sdpa"`, `"flash_attention_2"`, `"eager"` |
@@ -437,9 +443,10 @@ llm:
 - `meta-llama/Llama-3.1-8B-Instruct` — Meta's Llama 3.1
 
 **Quantization tips:**
-- `load_in_4bit: true` — reduces VRAM by ~4x, slight quality loss
-- `load_in_8bit: true` — reduces VRAM by ~2x, minimal quality loss
-- Cannot use both 4-bit and 8-bit simultaneously
+- `quantization: "4bit"` — reduces VRAM by ~4x, slight quality loss
+- `quantization: "8bit"` — reduces VRAM by ~2x, minimal quality loss
+- 4-bit supports fine-tuning via `bnb_4bit_compute_dtype`, `bnb_4bit_quant_type` (`"nf4"` recommended), and `bnb_4bit_use_double_quant`
+- Requires the `bitsandbytes` library: `pip install autoevoextractor[quant]`
 
 ### Extraction Configuration
 

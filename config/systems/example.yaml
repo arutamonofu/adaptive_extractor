@@ -20,7 +20,7 @@ llm:
   # Student model — used for extraction and optimisation.
   student:
     provider: "transformers"
-    model: "qwen/qwen3.5-27b"
+    model: "qwen/qwen3.5-0.8b"
     temperature: 0.1
     top_p: 0.85
     max_retries: 5
@@ -29,11 +29,12 @@ llm:
     transformers:
       device_map: "auto"
       torch_dtype: "float16"
-      load_in_4bit: false
-      load_in_8bit: true
+      quantization: "4bit"
+      bnb_4bit_quant_type: "nf4"
+      bnb_4bit_use_double_quant: true
       trust_remote_code: true
       max_new_tokens: 2048
-      attn_implementation: "flash_attention_2"
+      attn_implementation: "sdpa"
       repetition_penalty: 1.05
       no_repeat_ngram_size: 4
 
@@ -70,7 +71,7 @@ paths:
   pdf_dir: "data/pdf"
   parsed_dir: "data/parsed"
   ground_truth_dir: "data/ground_truth"
-  splits_file: "data/splits/nanozymes.json"
+  splits_file: "data/splits/nanozymes_pilot.json"
   agents_dir: "data/agents"
   extractions_dir: "data/extractions"
 

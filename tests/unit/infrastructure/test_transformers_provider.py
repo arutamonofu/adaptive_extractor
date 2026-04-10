@@ -46,8 +46,7 @@ def transformers_config():
         transformers=TransformersConfig(
             device_map="auto",
             torch_dtype="float16",
-            load_in_4bit=False,
-            load_in_8bit=False,
+            quantization=None,
             trust_remote_code=False,
             max_new_tokens=4096,
             attn_implementation="sdpa",
@@ -96,13 +95,47 @@ class TestTransformersConfig:
 
         assert config.device_map == "auto"
         assert config.torch_dtype == "float16"
-        assert config.load_in_4bit is False
-        assert config.load_in_8bit is False
+        assert config.quantization is None
+        assert config.bnb_4bit_compute_dtype is None
+        assert config.bnb_4bit_quant_type == "nf4"
+        assert config.bnb_4bit_use_double_quant is True
         assert config.trust_remote_code is False
         assert config.max_new_tokens == 4096
         assert config.attn_implementation == "sdpa"
         assert config.repetition_penalty == 1.2
         assert config.no_repeat_ngram_size == 0
+
+    def test_quantization_valid_values(self):
+        """Test that valid quantization values are accepted."""
+        config_4bit = TransformersConfig(quantization="4bit")
+        assert config_4bit.quantization == "4bit"
+
+        config_8bit = TransformersConfig(quantization="8bit")
+        assert config_8bit.quantization == "8bit"
+
+    def test_quantization_invalid_value_raises_error(self):
+        """Test that invalid quantization values raise ValidationError."""
+        with pytest.raises(ValueError, match="quantization must be '4bit', '8bit', or None"):
+            TransformersConfig(quantization="16bit")
+
+        with pytest.raises(ValueError, match="quantization must be '4bit', '8bit', or None"):
+            TransformersConfig(quantization="true")
+
+    def test_bnb_4bit_quant_type_validation(self):
+        """Test bnb_4bit_quant_type validation."""
+        config = TransformersConfig(bnb_4bit_quant_type="fp4")
+        assert config.bnb_4bit_quant_type == "fp4"
+
+        with pytest.raises(ValueError, match="bnb_4bit_quant_type must be 'nf4' or 'fp4'"):
+            TransformersConfig(bnb_4bit_quant_type="invalid")
+
+    def test_bnb_4bit_compute_dtype_validation(self):
+        """Test bnb_4bit_compute_dtype validation."""
+        config = TransformersConfig(bnb_4bit_compute_dtype="bfloat16")
+        assert config.bnb_4bit_compute_dtype == "bfloat16"
+
+        with pytest.raises(ValueError, match="bnb_4bit_compute_dtype must be"):
+            TransformersConfig(bnb_4bit_compute_dtype="int8")
 
 
 # =============================================================================
@@ -744,3 +777,113 @@ class TestCreateLM:
         )
 
         assert isinstance(lm, TransformersLM)
+
+
+# =============================================================================
+# Test Quantization in _load_model
+# =============================================================================
+
+
+class TestQuantizationLoading:
+    """Test that _load_model correctly constructs BitsAndBytesConfig."""
+
+    def _make_mocks(self):
+        """Create mock model and tokenizer."""
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.pad_token_id = 50256
+
+        mock_model = MagicMock()
+        mock_model.device = "cpu"
+        mock_model.parameters.return_value = [MagicMock(device="cpu")]
+
+        return mock_model, mock_tokenizer
+
+    @patch("transformers.AutoModelForCausalLM")
+    @patch("transformers.AutoTokenizer")
+    def test_4bit_quantization_builds_bnb_config(self, mock_tokenizer_cls, mock_model_cls):
+        """Test that quantization='4bit' passes quantization_config to from_pretrained."""
+        from aee.infrastructure.llm.provider import TransformersLM
+        from aee.infrastructure.config.settings import TransformersConfig
+        from transformers import BitsAndBytesConfig
+
+        mock_model, mock_tokenizer = self._make_mocks()
+        mock_tokenizer_cls.from_pretrained.return_value = mock_tokenizer
+        mock_model_cls.from_pretrained.return_value = mock_model
+
+        TransformersLM.clear_cache()
+
+        config = TransformersConfig(
+            device_map="auto",
+            torch_dtype="float16",
+            quantization="4bit",
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+        )
+
+        TransformersLM._load_model("test-model", config)
+
+        call_kwargs = mock_model_cls.from_pretrained.call_args[1]
+        assert "quantization_config" in call_kwargs
+        assert "torch_dtype" not in call_kwargs
+
+        bnb_cfg = call_kwargs["quantization_config"]
+        assert isinstance(bnb_cfg, BitsAndBytesConfig)
+        assert bnb_cfg.load_in_4bit is True
+        assert bnb_cfg.load_in_8bit is False
+
+    @patch("transformers.AutoModelForCausalLM")
+    @patch("transformers.AutoTokenizer")
+    def test_8bit_quantization_builds_bnb_config(self, mock_tokenizer_cls, mock_model_cls):
+        """Test that quantization='8bit' passes quantization_config to from_pretrained."""
+        from aee.infrastructure.llm.provider import TransformersLM
+        from aee.infrastructure.config.settings import TransformersConfig
+        from transformers import BitsAndBytesConfig
+
+        mock_model, mock_tokenizer = self._make_mocks()
+        mock_tokenizer_cls.from_pretrained.return_value = mock_tokenizer
+        mock_model_cls.from_pretrained.return_value = mock_model
+
+        TransformersLM.clear_cache()
+
+        config = TransformersConfig(
+            device_map="auto",
+            torch_dtype="float16",
+            quantization="8bit",
+        )
+
+        TransformersLM._load_model("test-model", config)
+
+        call_kwargs = mock_model_cls.from_pretrained.call_args[1]
+        assert "quantization_config" in call_kwargs
+        assert "torch_dtype" not in call_kwargs
+
+        bnb_cfg = call_kwargs["quantization_config"]
+        assert isinstance(bnb_cfg, BitsAndBytesConfig)
+        assert bnb_cfg.load_in_8bit is True
+        assert bnb_cfg.load_in_4bit is False
+
+    @patch("transformers.AutoModelForCausalLM")
+    @patch("transformers.AutoTokenizer")
+    def test_no_quantization_no_bnb_config(self, mock_tokenizer_cls, mock_model_cls):
+        """Test that without quantization, no quantization_config is passed."""
+        from aee.infrastructure.llm.provider import TransformersLM
+        from aee.infrastructure.config.settings import TransformersConfig
+
+        mock_model, mock_tokenizer = self._make_mocks()
+        mock_tokenizer_cls.from_pretrained.return_value = mock_tokenizer
+        mock_model_cls.from_pretrained.return_value = mock_model
+
+        TransformersLM.clear_cache()
+
+        config = TransformersConfig(
+            device_map="auto",
+            torch_dtype="bfloat16",
+            quantization=None,
+        )
+
+        TransformersLM._load_model("test-model", config)
+
+        call_kwargs = mock_model_cls.from_pretrained.call_args[1]
+        assert "quantization_config" not in call_kwargs
+        assert "torch_dtype" in call_kwargs
+
