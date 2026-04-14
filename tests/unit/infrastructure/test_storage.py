@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from aee.infrastructure.storage import AgentMetadata, AgentRepository, GroundTruthRepository, DataSplitRepository
+from aee.infrastructure.storage import AgentMetadata, AgentRepository, DataSplitRepository, GroundTruthRepository
 from aee.shared.exceptions import (
     AgentNotFoundError,
     DataNotFoundError,

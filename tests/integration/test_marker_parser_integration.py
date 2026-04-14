@@ -17,11 +17,11 @@ import pytest
 
 pytest.importorskip("marker.converters.pdf")
 
+from aee import Settings
 from aee.application.use_cases.parse_documents import (
     ParseDocumentsRequest,
     ParseDocumentsUseCase,
 )
-from aee import Settings
 from aee.infrastructure.config import MarkerConfig
 from aee.infrastructure.parsers import MarkerParser, get_parser
 from aee.infrastructure.storage import DocumentRepository

@@ -10,6 +10,7 @@ Tests cover:
 """
 
 import time
+
 import pytest
 
 from aee.infrastructure.llm import (

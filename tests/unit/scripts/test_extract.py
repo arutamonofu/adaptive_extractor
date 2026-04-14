@@ -742,6 +742,7 @@ class TestSuccessfulExtraction:
         # Mock setup_student BEFORE importing extract_command
         # This ensures the mock is in place before any imports happen
         from unittest.mock import MagicMock
+
         import dspy
 
         # Create mock LM

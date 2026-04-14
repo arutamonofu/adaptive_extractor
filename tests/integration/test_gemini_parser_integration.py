@@ -12,11 +12,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from aee import Settings
 from aee.application.use_cases.parse_documents import (
     ParseDocumentsRequest,
     ParseDocumentsUseCase,
 )
-from aee import Settings
 from aee.infrastructure.config import GeminiParserConfig
 from aee.infrastructure.parsers import GeminiParser, get_parser
 from aee.infrastructure.storage import DocumentRepository

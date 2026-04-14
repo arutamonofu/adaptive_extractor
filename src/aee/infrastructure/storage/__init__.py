@@ -37,7 +37,8 @@ from .splits_fn import (
 # Lazy imports — ground_truth.py and migrations.py import pandas
 if TYPE_CHECKING:
     from .ground_truth import GroundTruthRepository
-    from .ground_truth_fn import load_ground_truth, validate_coverage as validate_gt_coverage
+    from .ground_truth_fn import load_ground_truth
+    from .ground_truth_fn import validate_coverage as validate_gt_coverage
     from .migrations import (
         AgentMigrator,
         GroundTruthMigrator,

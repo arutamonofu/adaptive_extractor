@@ -8,7 +8,6 @@ from typing import Any, Dict, List
 import pandas as pd
 import pytest
 
-
 # ============================================================================
 # Test Data Paths
 # ============================================================================
@@ -38,10 +37,10 @@ def nanozyme_task(tmp_nanozymes_task_yaml: Path, nanozyme_test_instruction_path:
         Note: signature is created lazily on first access as it requires instruction file.
     """
     from aee.domain.tasks import (
-        load_task_from_yaml,
         create_all_models,
         create_row_converter,
         create_signature,
+        load_task_from_yaml,
     )
 
     # Load task from temporary YAML (without instruction file initially)

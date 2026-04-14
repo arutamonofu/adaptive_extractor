@@ -7,12 +7,13 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Union
 
+from aee.infrastructure.config.settings import GeminiParserConfig, MarkerConfig
+
 # Project
 from aee.infrastructure.parsers.base import BaseParser
-from aee.infrastructure.config.settings import MarkerConfig, GeminiParserConfig
 from aee.infrastructure.parsers.marker_config import (
-    get_marker_config_dict,
     get_custom_processors,
+    get_marker_config_dict,
     get_torch_device,
 )
 
@@ -144,9 +145,9 @@ class MarkerParser(BaseParser):
             ValueError: If config is None.
         """
         # Lazy import — marker is only needed when MarkerParser is instantiated
+        from marker.config.parser import ConfigParser
         from marker.converters.pdf import PdfConverter
         from marker.models import create_model_dict
-        from marker.config.parser import ConfigParser
 
         if config is None:
             raise ValueError("Configuration object is required for MarkerParser")
@@ -387,7 +388,7 @@ def get_parser(parser_name: str, config: Any = None) -> BaseParser:
     Raises:
         ValueError: If parser_name is not recognized or config is invalid.
     """
-    from aee.infrastructure.config.settings import MarkerConfig, GeminiParserConfig
+    from aee.infrastructure.config.settings import GeminiParserConfig, MarkerConfig
 
     parser_name = parser_name.lower()
 

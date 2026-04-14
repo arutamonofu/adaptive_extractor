@@ -13,18 +13,18 @@ import pytest
 
 from aee.infrastructure.storage import (
     AgentMetadata,
+    create_random_split,
     delete_agent,
     get_agent_info,
     get_latest_agent,
     list_agents,
     load_agent,
-    save_agent,
-    load_ground_truth,
-    validate_gt_coverage,
-    load_split,
     load_all_splits,
+    load_ground_truth,
+    load_split,
+    save_agent,
     save_splits,
-    create_random_split,
+    validate_gt_coverage,
     validate_splits,
 )
 from aee.shared.exceptions import AgentNotFoundError, DataNotFoundError

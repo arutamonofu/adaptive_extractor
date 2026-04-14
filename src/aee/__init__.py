@@ -8,17 +8,17 @@ __version__ = "0.4.0"
 
 if TYPE_CHECKING:
     # Core modules
-    from aee.infrastructure.config import Settings, setup_logging
-    from aee.infrastructure.parsers import BaseParser, MarkerParser
-    from aee.infrastructure.agents import UniversalExtractor
-    from aee.domain.evaluation import TaskMetric, ExperimentMatcher
-    from aee.infrastructure.llm import setup_student, setup_teacher, create_lm
-    from aee.infrastructure.storage import (
-        GroundTruthRepository,
-        ExtractionRepository,
-        DataSplitRepository,
-    )
     from aee.application.services import DatasetBuilder
+    from aee.domain.evaluation import ExperimentMatcher, TaskMetric
+    from aee.infrastructure.agents import UniversalExtractor
+    from aee.infrastructure.config import Settings, setup_logging
+    from aee.infrastructure.llm import create_lm, setup_student, setup_teacher
+    from aee.infrastructure.parsers import BaseParser, MarkerParser
+    from aee.infrastructure.storage import (
+        DataSplitRepository,
+        ExtractionRepository,
+        GroundTruthRepository,
+    )
 
 
 def __getattr__(name: str):

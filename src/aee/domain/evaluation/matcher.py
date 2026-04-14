@@ -232,28 +232,46 @@ The following fields did not match strictly. Evaluate ONLY these fields based on
 {discrepancies_text}
 
 --- JUDGE ROLE & SCOPE ---
-You are a SEMANTIC EQUIVALENCE JUDGE. You evaluate ONLY whether the Predicted and Ground Truth values represent the same physical, chemical, or experimental reality.
-You DO NOT enforce extraction policies. Calculations, unit conversions, strict filtering, or literal-only rules applied by the Extractor are IRRELEVANT to your judgment.
-You have NO access to the source article. Rely ONLY on the provided JSONs.
+You are a SEMANTIC EQUIVALENCE JUDGE. You evaluate ONLY whether the Predicted
+and Ground Truth values represent the same physical, chemical, or experimental
+reality. You DO NOT enforce extraction policies. Calculations, unit conversions,
+strict filtering, or literal-only rules applied by the Extractor are IRRELEVANT
+to your judgment. You have NO access to the source article. Rely ONLY on the
+provided JSONs.
 
 --- INSTRUCTIONS ---
 Evaluate EACH discrepancy using the following strict IF-THEN rules:
 
 [ANSWER "YES" (ACCEPTABLE VARIATION) IF:]
-1. Math & Unit Equivalence: Values represent the same physical quantity despite notation, scientific format, or unit scales (e.g., 91 μM == 0.091 mM, 0  5.07e-08 == 5.07×10^-8). 0 in any unit equals 0 in any other unit. Minor rounding in the last significant digit is allowed.
-2. Paired Value+Unit Fields: For fields split into *_value and *_unit, evaluate the combined physical quantity. If Pred["*_value"] and Pred["*_unit"] are mathematically equivalent to GT's pair, return YES.
-3. Semantic Synonyms & Ordering: Terms are standard scientific synonyms, IUPAC/common names, case variations, or alternate orderings of mixtures (e.g., "A + B" == "B + A"), provided chemical roles are identical.
-4. Ranges & Approximations: Overlapping intervals or equivalent approximations are acceptable (e.g., "10-25" == "15±5", "≈30" == "~30", "room temp" == "25" if contextually standard).
-5. Implicit Nulls (Deduction): Predicted is 'null' AND the missing value is mathematically, geometrically, or physically guaranteed by other explicitly stated fields in the Context.
+1. Math & Unit Equivalence: Values represent the same physical quantity despite
+   notation, scientific format, or unit scales (e.g., 91 μM == 0.091 mM,
+   0  5.07e-08 == 5.07×10^-8). 0 in any unit equals 0 in any other unit. Minor
+   rounding in the last significant digit is allowed.
+2. Paired Value+Unit Fields: For fields split into *_value and *_unit, evaluate
+   the combined physical quantity. If Pred["*_value"] and Pred["*_unit"] are
+   mathematically equivalent to GT's pair, return YES.
+3. Semantic Synonyms & Ordering: Terms are standard scientific synonyms,
+   IUPAC/common names, case variations, or alternate orderings of mixtures
+   (e.g., "A + B" == "B + A"), provided chemical roles are identical.
+4. Ranges & Approximations: Overlapping intervals or equivalent approximations
+   are acceptable (e.g., "10-25" == "15±5", "≈30" == "~30", "room temp" == "25"
+   if contextually standard).
+5. Implicit Nulls (Deduction): Predicted is 'null' AND the missing value is
+   mathematically, geometrically, or physically guaranteed by other explicitly
+   stated fields in the Context.
 
 [ANSWER "NO" (ACTUAL ERROR) IF:]
-1. Hallucination (Strict Rule): GT is 'null' AND Predicted contains ANY value that cannot be strictly deduced from other GT fields or basic scientific laws.
-2. Factual Contradiction: Magnitudes differ by orders of magnitude, stoichiometry/chemical identity is altered, or reaction roles are swapped.
-3. Unjustified Guessing: Predicted fills a missing GT value with an arbitrary assumption not grounded in the provided JSON context.
+1. Hallucination (Strict Rule): GT is 'null' AND Predicted contains ANY value
+   that cannot be strictly deduced from other GT fields or basic scientific laws.
+2. Factual Contradiction: Magnitudes differ by orders of magnitude,
+   stoichiometry/chemical identity is altered, or reaction roles are swapped.
+3. Unjustified Guessing: Predicted fills a missing GT value with an arbitrary
+   assumption not grounded in the provided JSON context.
 
 [OUTPUT FORMAT]
-Return a valid JSON object ONLY. Do not include markdown, explanations, or additional text. Keys must be the exact discrepancy field names.
-Values must be strictly "YES" or "NO".
+Return a valid JSON object ONLY. Do not include markdown, explanations, or
+additional text. Keys must be the exact discrepancy field names. Values must be
+strictly "YES" or "NO".
 
 Example: {_SEMANTIC_JUDGE_EXAMPLE}"""
         ]

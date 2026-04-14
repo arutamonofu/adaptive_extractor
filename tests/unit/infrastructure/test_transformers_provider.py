@@ -7,14 +7,12 @@ import pytest
 import torch
 
 from aee.infrastructure.config import (
+    ApiConfig,
     LLMInstanceConfig,
     OllamaConfig,
-    ApiConfig,
     TransformersConfig,
 )
-from aee.infrastructure.llm import CircuitBreaker, CircuitBreakerError
-from aee.infrastructure.llm import TransformersLM
-
+from aee.infrastructure.llm import CircuitBreaker, CircuitBreakerError, TransformersLM
 
 # =============================================================================
 # Test Fixtures
@@ -921,9 +919,10 @@ class TestQuantizationLoading:
     @patch("transformers.AutoTokenizer")
     def test_4bit_quantization_builds_bnb_config(self, mock_tokenizer_cls, mock_model_cls):
         """Test that quantization='4bit' passes quantization_config to from_pretrained."""
-        from aee.infrastructure.llm.provider import TransformersLM
-        from aee.infrastructure.config.settings import TransformersConfig
         from transformers import BitsAndBytesConfig
+
+        from aee.infrastructure.config.settings import TransformersConfig
+        from aee.infrastructure.llm.provider import TransformersLM
 
         mock_model, mock_tokenizer = self._make_mocks()
         mock_tokenizer_cls.from_pretrained.return_value = mock_tokenizer
@@ -954,9 +953,10 @@ class TestQuantizationLoading:
     @patch("transformers.AutoTokenizer")
     def test_8bit_quantization_builds_bnb_config(self, mock_tokenizer_cls, mock_model_cls):
         """Test that quantization='8bit' passes quantization_config to from_pretrained."""
-        from aee.infrastructure.llm.provider import TransformersLM
-        from aee.infrastructure.config.settings import TransformersConfig
         from transformers import BitsAndBytesConfig
+
+        from aee.infrastructure.config.settings import TransformersConfig
+        from aee.infrastructure.llm.provider import TransformersLM
 
         mock_model, mock_tokenizer = self._make_mocks()
         mock_tokenizer_cls.from_pretrained.return_value = mock_tokenizer
@@ -985,8 +985,8 @@ class TestQuantizationLoading:
     @patch("transformers.AutoTokenizer")
     def test_no_quantization_no_bnb_config(self, mock_tokenizer_cls, mock_model_cls):
         """Test that without quantization, no quantization_config is passed."""
-        from aee.infrastructure.llm.provider import TransformersLM
         from aee.infrastructure.config.settings import TransformersConfig
+        from aee.infrastructure.llm.provider import TransformersLM
 
         mock_model, mock_tokenizer = self._make_mocks()
         mock_tokenizer_cls.from_pretrained.return_value = mock_tokenizer
@@ -1005,4 +1005,3 @@ class TestQuantizationLoading:
         call_kwargs = mock_model_cls.from_pretrained.call_args[1]
         assert "quantization_config" not in call_kwargs
         assert "torch_dtype" in call_kwargs
-

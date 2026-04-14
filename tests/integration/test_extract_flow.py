@@ -221,7 +221,7 @@ class TestAgentStateRestoration:
     ):
         """Test agent restoration from flat DSPy format (lm, traces, settings)."""
         from aee.application.services import AgentManager
-        from aee.domain.tasks import get_task, load_task_from_yaml, register_config, get_global_registry
+        from aee.domain.tasks import get_global_registry, get_task, load_task_from_yaml, register_config
         from aee.infrastructure.storage import AgentRepository
 
         # Register task first (check if already registered)
@@ -269,7 +269,7 @@ class TestAgentStateRestoration:
     ):
         """Test agent restoration from nested format (prog: {...})."""
         from aee.application.services import AgentManager
-        from aee.domain.tasks import get_task, load_task_from_yaml, register_config, get_global_registry
+        from aee.domain.tasks import get_global_registry, get_task, load_task_from_yaml, register_config
         from aee.infrastructure.storage import AgentRepository
 
         # Register task first (check if already registered)
@@ -316,7 +316,7 @@ class TestAgentStateRestoration:
     ):
         """Test that agent restoration fails with clear error for invalid format."""
         from aee.application.services import AgentManager
-        from aee.domain.tasks import get_task, load_task_from_yaml, register_config, get_global_registry
+        from aee.domain.tasks import get_global_registry, get_task, load_task_from_yaml, register_config
         from aee.infrastructure.storage import AgentRepository
         from aee.shared.exceptions import UseCaseExecutionError
 

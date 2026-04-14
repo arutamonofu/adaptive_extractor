@@ -5,6 +5,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from aee.infrastructure.config.environments import (
+    load_dev_settings,
+    load_prod_settings,
+    load_settings_for_environment,
+    load_test_settings,
+)
+from aee.infrastructure.config.logging import setup_logging
 from aee.infrastructure.config.settings import (
     ApiConfig,
     CircuitBreakerConfig,
@@ -14,13 +21,6 @@ from aee.infrastructure.config.settings import (
     MarkerConfig,
     OllamaConfig,
     Settings,
-)
-from aee.infrastructure.config.logging import setup_logging
-from aee.infrastructure.config.environments import (
-    load_settings_for_environment,
-    load_dev_settings,
-    load_test_settings,
-    load_prod_settings,
 )
 
 if TYPE_CHECKING:

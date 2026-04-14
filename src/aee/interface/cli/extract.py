@@ -10,7 +10,6 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-
 from aee import setup_logging
 from aee.application.services import AgentManager
 from aee.application.use_cases import BatchPredictionRequest, BatchPredictionUseCase

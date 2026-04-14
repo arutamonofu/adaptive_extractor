@@ -9,9 +9,8 @@ from unittest.mock import patch
 import pytest
 import responses
 
-from aee.infrastructure.config import LLMInstanceConfig, ApiConfig, OllamaConfig
-from aee.infrastructure.llm import CircuitBreaker, OllamaLM, create_lm, BaseHTTPProvider, OpenRouterLM
-
+from aee.infrastructure.config import ApiConfig, LLMInstanceConfig, OllamaConfig
+from aee.infrastructure.llm import BaseHTTPProvider, CircuitBreaker, OllamaLM, OpenRouterLM, create_lm
 
 # =============================================================================
 # Test Fixtures

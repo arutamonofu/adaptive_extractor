@@ -9,7 +9,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Type, Union, runtime_checkable
 
-
 from aee.domain.tasks import TaskConfig
 from aee.infrastructure.storage import AgentMetadata, AgentRepository
 from aee.shared.exceptions import AgentNotFoundError, UseCaseExecutionError
@@ -531,8 +530,8 @@ class AgentManager:
 
         # For agents with save() method - save to temp file and load
         if isinstance(agent, SaveableAgent):
-            import tempfile
             import json
+            import tempfile
 
             with tempfile.NamedTemporaryFile(
                 mode="w", suffix=".json", delete=False
