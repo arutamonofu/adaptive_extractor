@@ -10,19 +10,19 @@ fields:
 
   activity:
     type: str
-    description: "Catalytic activity type determined from the experimental assay"
+    description: "Catalytic activity type determined from the experimental assay methodology, not from author claims"
     required: true
     choices: [peroxidase, oxidase, catalase, laccase, glucose oxidase]
 
   syngony:
     type: str
-    description: "Crystal system explicitly stated in the text"
+    description: "Crystal system explicitly stated as a word in the article text"
     choices: [cubic, hexagonal, tetragonal, monoclinic, orthorhombic, trigonal, triclinic, amorphous, rhombohedral, '0']
     required: false
 
   length:
     type: str
-    description: "Particle length or size dimension exactly as reported in the text"
+    description: "Particle length or size dimension exactly as reported from TEM or SEM measurements of the final nanozyme"
     required: false
   length_unit:
     type: str
@@ -31,7 +31,7 @@ fields:
 
   width:
     type: str
-    description: "Particle width exactly as reported in the text"
+    description: "Particle width exactly as reported from TEM or SEM measurements of the final nanozyme"
     required: false
   width_unit:
     type: str
@@ -40,7 +40,7 @@ fields:
 
   depth:
     type: str
-    description: "Particle thickness or third dimension exactly as reported in the text"
+    description: "Particle thickness or third dimension exactly as reported from TEM or SEM measurements of the final nanozyme"
     required: false
   depth_unit:
     type: str
@@ -49,7 +49,7 @@ fields:
 
   surface:
     type: str
-    description: "Explicitly reported intentional organic surface modification of the nanozyme"
+    description: "Component explicitly present in the final nanozyme material that corresponds to an organic or molecular surface/interface component, including integrated templates or stabilizers/surfactants/ions ONLY if they are explicitly part of the final material identity (name or composition) as described in the article"
     required: false
 
   km_value:
@@ -72,7 +72,7 @@ fields:
 
   reaction_type:
     type: str
-    description: "Reaction system as explicitly described in the experiment formatted as Format as [Substrate] (goes first) + [Co-substrate] (goes second) excluding gaesous components (eg., TMB + H2O2)"
+    description: "Reaction system formatted STRICTLY as [Substrate] or [Substrate] + [Co-substrate] including only explicitly added liquid or solid reagents, excluding gases (e.g., O2), and containing at most two components"
     required: false
 
   c_min:
@@ -95,7 +95,7 @@ fields:
 
   c_const:
     type: str
-    description: "Value of the constant component exactly as reported"
+    description: "Value of the constant component exactly as explicitly reported in the kinetic measurement setup, including stock or working solutions ONLY if they are explicitly used in the kinetic assay"
     required: false
   c_const_unit:
     type: str
@@ -104,7 +104,7 @@ fields:
 
   ccat_value:
     type: str
-    description: "Value of the catalyst amount or concentration exactly as reported"
+    description: "Catalyst amount or concentration exactly as explicitly reported in the kinetic experiment, including stock or working solutions ONLY if explicitly added in the assay"
     required: false
   ccat_unit:
     type: str
@@ -113,15 +113,15 @@ fields:
 
   ph:
     type: str
-    description: "pH value explicitly reported for the experiment"
+    description: "pH value explicitly reported for the kinetic experiment"
     required: false
 
   temperature:
     type: str
-    description: "Numerical experimental temperature exactly as reported"
+    description: "Numerical experimental temperature exactly as reported in the kinetic experiment"
     required: false
 
-compare_fields: [formula, activity, syngony, surface, length, width, depth, reaction_type, km_value, km_unit, vmax_value, vmax_unit, ph, temperature, c_min, c_min_unit, c_max, c_max_unit, c_const, c_const_unit, ccat_value, ccat_unit]
+compare_fields: [formula, activity, syngony, surface, length, length_unit, width, width_unit, depth, depth_unit, reaction_type, km_value, km_unit, vmax_value, vmax_unit, ph, temperature, c_min, c_min_unit, c_max, c_max_unit, c_const, c_const_unit, ccat_value, ccat_unit]
 float_tolerance: 0.05
 
 row_converter:
@@ -129,8 +129,11 @@ row_converter:
   activity: [activity]
   syngony: [syngony]
   length: [length]
+  length_unit: [length_unit]
   width: [width]
+  width_unit: [width_unit]
   depth: [depth]
+  depth_unit: [depth_unit]
   surface: [surface]
   km_value: [km_value]
   km_unit: [km_unit]

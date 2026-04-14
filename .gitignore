@@ -42,7 +42,10 @@ environment.yml.local
 .ipynb_checkpoints/
 
 # --- Data (raw & intermediate) ---
-data/*
+data/agents/*
+data/extractions/*
+data/pdf/*
+
 !data/.gitkeep
 !data/*/.gitkeep
 
@@ -68,7 +71,7 @@ config/initial_instructions/*
 !config/initial_instructions/.gitkeep
 config/tasks/*
 !config/tasks/.gitkeep
-!config/tasks/nanozymes.yaml
+!config/tasks/nanozymes_pilot.yaml
 config/systems/*
 !config/systems/.gitkeep
 !config/systems/example.yaml
