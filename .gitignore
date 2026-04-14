@@ -69,12 +69,15 @@ weights/
 # --- Configs ---
 config/initial_instructions/*
 !config/initial_instructions/.gitkeep
+!config/initial_instructions/nanozymes_pilot.txt
+
 config/tasks/*
 !config/tasks/.gitkeep
 !config/tasks/nanozymes_pilot.yaml
+
 config/systems/*
 !config/systems/.gitkeep
-!config/systems/example.yaml
+!config/systems/pilot.yaml
 
 # --- Secrets ---
 .env
