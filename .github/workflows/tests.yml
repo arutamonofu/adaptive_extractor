@@ -14,96 +14,59 @@ jobs:
   test:
     name: Tests
     runs-on: ubuntu-latest
-    # 👇 Убрали матрицу — в lock-файле только linux-64 + python 3.12.13
-
     defaults:
       run:
-        shell: bash -l {0}  # 👈 Login shell для активации micromamba
+        # Login shell обязательно для корректной работы micromamba activate
+        shell: bash -l {0}
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 👇 1. Устанавливаем micromamba (базовый, без окружения)
       - name: Setup micromamba
         uses: mamba-org/setup-micromamba@v2
         with:
           micromamba-version: "latest"
           init-shell: bash
-          # 👇 Не указываем environment-file — установим через conda-lock ниже
 
-      # 👇 2. Кэшируем само conda-окружение из lock-файла
       - name: Cache conda environment
         uses: actions/cache@v4
         id: cache-conda
         with:
           path: ${{ env.MAMBA_ROOT_PREFIX }}/envs/aee
           key: ${{ runner.os }}-conda-aee-${{ hashFiles('conda-lock.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-conda-aee-
+          restore-keys: ${{ runner.os }}-conda-aee-
 
-      # 👇 3. Устанавливаем conda-lock и создаём окружение из lock-файла
       - name: Install environment from conda-lock
         if: steps.cache-conda.outputs.cache-hit != 'true'
-        run: |
-          micromamba install -n base -c conda-forge conda-lock -y
-          conda-lock install --mamba -n aee conda-lock.yml
+        run: micromamba create -n aee --file conda-lock.yml
 
-      # 👇 4. Устанавливаем локальный пакет (не в lock-файле)
       - name: Install local package
         run: |
           micromamba activate aee
           # --no-deps: зависимости уже зафиксированы в lock-файле
           pip install --no-deps -e ".[dev]"
 
-      # 👇 5. Системные зависимости для pip-пакетов с компиляцией
-      - name: Install system build deps
-        run: |
-          sudo apt-get update && sudo apt-get install -y \
-            build-essential \
-            cmake \
-            ninja-build \
-            libopenmpi-dev
+      - name: Run unit tests
+        run: pytest tests/unit -v -n auto --cov=src/aee --cov-report=xml --cov-report=term-missing -m unit
 
-      - name: Cache pytest cache
-        uses: actions/cache@v4
-        with:
-          path: .pytest_cache
-          key: ${{ runner.os }}-pytest-${{ hashFiles('tests/**') }}
-          restore-keys: ${{ runner.os }}-pytest-
-
-      - name: Run unit tests (parallel)
-        run: |
-          pytest tests/unit -v -n auto \
-            --cov=src/aee \
-            --cov-report=xml \
-            --cov-report=term-missing \
-            -m unit
-
-      - name: Run integration tests (fast only)
-        run: |
-          pytest tests/integration -v \
-            -m "integration and not slow" \
-            --cov=src/aee \
-            --cov-report=xml \
-            --cov-report=term-missing \
-            --cov-append
+      - name: Run integration tests
+        run: pytest tests/integration -v -m "integration and not slow" --cov=src/aee --cov-report=xml --cov-report=term-missing --cov-append
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
           flags: tests
-          name: codecov-py3.12
+          name: codecov-ubuntu
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
   lint:
     name: Lint & Type Check
     runs-on: ubuntu-latest
-    needs: test  # 👇 Запускаем после тестов, чтобы не тратить ресурсы зря
-
+    needs: test
     defaults:
       run:
         shell: bash -l {0}
@@ -127,15 +90,13 @@ jobs:
 
       - name: Install environment from conda-lock
         if: steps.cache-conda-lint.outputs.cache-hit != 'true'
-        run: |
-          micromamba install -n base -c conda-forge conda-lock -y
-          conda-lock install --mamba -n aee conda-lock.yml
+        run: micromamba create -n aee --file conda-lock.yml
 
-      - name: Install local package + lint tools
+      - name: Install local package & lint tools
         run: |
           micromamba activate aee
           pip install --no-deps -e ".[dev]"
-          # Если линтеры не в lock-файле — доустанавливаем
+          # Линтеры не входят в conda-lock, ставим через pip
           pip install flake8 mypy ruff
 
       - name: Run ruff check
@@ -154,7 +115,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        shell: bash -l {0}  # 👈 login shell для micromamba
+        shell: bash -l {0}
 
     steps:
       - uses: actions/checkout@v4
@@ -171,12 +132,11 @@ jobs:
         with:
           path: ${{ env.MAMBA_ROOT_PREFIX }}/envs/aee
           key: ${{ runner.os }}-conda-aee-${{ hashFiles('conda-lock.yml') }}
+          restore-keys: ${{ runner.os }}-conda-aee-
 
       - name: Install environment from conda-lock
         if: steps.cache-conda-build.outputs.cache-hit != 'true'
-        run: |
-          micromamba install -n base -c conda-forge conda-lock -y
-          conda-lock install --mamba -n aee conda-lock.yml
+        run: micromamba create -n aee --file conda-lock.yml
 
       - name: Install build dependencies
         run: |
@@ -189,8 +149,8 @@ jobs:
       - name: Check package with twine
         run: twine check dist/*
 
-      # 👇 Устанавливаем с --no-deps, т.к. зависимости уже в conda-окружении
       - name: Install from wheel
         run: |
           micromamba activate aee
+          # --no-deps предотвращает попытку pip пересобрать flash-attn/bitsandbytes
           pip install --no-deps dist/*.whl
