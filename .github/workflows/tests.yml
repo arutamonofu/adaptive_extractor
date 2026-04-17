@@ -152,20 +152,35 @@ jobs:
   build:
     name: Build & Install
     runs-on: ubuntu-latest
-    # 👇 Сборка не требует conda-окружения — оставляем pip
+    defaults:
+      run:
+        shell: bash -l {0}  # 👈 login shell для micromamba
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Setup micromamba
+        uses: mamba-org/setup-micromamba@v2
         with:
-          python-version: "3.12"
-          cache: "pip"
+          micromamba-version: "latest"
+          init-shell: bash
+
+      - name: Cache conda environment
+        uses: actions/cache@v4
+        id: cache-conda-build
+        with:
+          path: ${{ env.MAMBA_ROOT_PREFIX }}/envs/aee
+          key: ${{ runner.os }}-conda-aee-${{ hashFiles('conda-lock.yml') }}
+
+      - name: Install environment from conda-lock
+        if: steps.cache-conda-build.outputs.cache-hit != 'true'
+        run: |
+          micromamba install -n base -c conda-forge conda-lock -y
+          conda-lock install --mamba -n aee conda-lock.yml
 
       - name: Install build dependencies
         run: |
-          python -m pip install --upgrade pip
+          micromamba activate aee
           pip install build twine
 
       - name: Build package
@@ -174,5 +189,8 @@ jobs:
       - name: Check package with twine
         run: twine check dist/*
 
+      # 👇 Устанавливаем с --no-deps, т.к. зависимости уже в conda-окружении
       - name: Install from wheel
-        run: pip install dist/*.whl
+        run: |
+          micromamba activate aee
+          pip install --no-deps dist/*.whl
