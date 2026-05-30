@@ -432,8 +432,8 @@ def get_parser(parser_name: str, config: Any = None) -> BaseParser:
     """Factory function to get a parser instance by name.
 
     Args:
-        parser_name: Name of the parser ("marker" or "gemini").
-        config: Configuration for the parser (MarkerConfig or GeminiParserConfig).
+        parser_name: Name of the parser ("marker", "gemini", or "gemini_visual").
+        config: Configuration for the parser (MarkerConfig, GeminiParserConfig, or AEEVisualParserConfig).
 
     Returns:
         Parser instance.
@@ -441,7 +441,12 @@ def get_parser(parser_name: str, config: Any = None) -> BaseParser:
     Raises:
         ValueError: If parser_name is not recognized or config is invalid.
     """
-    from aee.infrastructure.config.settings import GeminiParserConfig, MarkerConfig
+    from aee.infrastructure.config.settings import (
+        AEEVisualParserConfig,
+        GeminiParserConfig,
+        MarkerConfig,
+    )
+    from aee.infrastructure.parsers.visual_parser import AEEVisualParser
 
     parser_name = parser_name.lower()
 
@@ -459,7 +464,14 @@ def get_parser(parser_name: str, config: Any = None) -> BaseParser:
             )
         return GeminiParser(config)
 
+    elif parser_name == "gemini_visual":
+        if config is None or not isinstance(config, AEEVisualParserConfig):
+            raise ValueError(
+                f"AEEVisualParser requires AEEVisualParserConfig, got {type(config).__name__}"
+            )
+        return AEEVisualParser(config)
+
     else:
         raise ValueError(
-            f"Unknown parser: {parser_name}. Available parsers: 'marker', 'gemini'"
+            f"Unknown parser: {parser_name}. Available parsers: 'marker', 'gemini', 'gemini_visual'"
         )

@@ -481,11 +481,27 @@ class GeminiParserConfig(BaseModel):
     )
 
 
+class AEEVisualParserConfig(BaseModel):
+    """Configuration for the visual extraction parser (aee_visual)."""
+    task_config_path: str = Field(
+        ...,
+        description="Path to aee_visual schema / task configuration"
+    )
+    pipeline_config_path: str = Field(
+        ...,
+        description="Path to aee_visual pipeline.yaml configuration"
+    )
+    gemini: GeminiParserConfig = Field(
+        default_factory=GeminiParserConfig,
+        description="Gemini-specific configuration for base text extraction"
+    )
+
+
 class IngestionConfig(BaseModel):
     """Document ingestion configuration."""
-    parser: Literal["marker", "gemini"] = Field(
+    parser: Literal["marker", "gemini", "gemini_visual"] = Field(
         ...,
-        description="Document parser to use: 'marker' or 'gemini'"
+        description="Document parser to use: 'marker', 'gemini', or 'gemini_visual'"
     )
     overwrite: bool = Field(
         ...,
@@ -500,6 +516,10 @@ class IngestionConfig(BaseModel):
         default=None,
         description="Gemini-specific configuration (required if parser is 'gemini')"
     )
+    gemini_visual: Optional[AEEVisualParserConfig] = Field(
+        default=None,
+        description="Gemini-visual-specific configuration (required if parser is 'gemini_visual')"
+    )
 
     @model_validator(mode="after")
     def validate_parser_config(self) -> "IngestionConfig":
@@ -510,6 +530,10 @@ class IngestionConfig(BaseModel):
         if self.parser == "gemini" and self.gemini is None:
             # For gemini, we can use defaults, so just create a default config
             self.gemini = GeminiParserConfig()
+        if self.parser == "gemini_visual" and self.gemini_visual is None:
+            raise ValueError(
+                "gemini_visual configuration is required when parser is 'gemini_visual'"
+            )
         return self
 
 

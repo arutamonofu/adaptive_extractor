@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from .base import BaseParser
 from .parsers import GeminiParser, get_parser
+from .visual_parser import AEEVisualParser
 
 # Alias for backward compatibility
 if TYPE_CHECKING:
@@ -35,5 +36,6 @@ __all__ = [
     "DocumentParser",
     "MarkerParser",
     "GeminiParser",
+    "AEEVisualParser",
     "get_parser",
 ]

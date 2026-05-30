@@ -13,6 +13,7 @@ from aee.infrastructure.config.environments import (
 )
 from aee.infrastructure.config.logging import setup_logging
 from aee.infrastructure.config.settings import (
+    AEEVisualParserConfig,
     ApiConfig,
     CircuitBreakerConfig,
     GeminiParserConfig,
@@ -39,6 +40,7 @@ __all__ = [
     "CircuitBreakerConfig",
     "MarkerConfig",
     "GeminiParserConfig",
+    "AEEVisualParserConfig",
     "IngestionConfig",
     "TransformersConfig",
 ]

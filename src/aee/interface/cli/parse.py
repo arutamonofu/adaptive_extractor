@@ -153,15 +153,21 @@ def parse_command(argv: Optional[list] = None) -> int:
         # Create use case
         use_case = ParseDocumentsUseCase(document_repo=doc_repo)
 
+        # Determine parser config
+        if custom_settings.parsing.parser == "gemini":
+            parser_config = custom_settings.parsing.gemini
+        elif custom_settings.parsing.parser == "gemini_visual":
+            parser_config = custom_settings.parsing.gemini_visual
+        else:
+            parser_config = custom_settings.parsing.marker
+
         # Build request
         request = ParseDocumentsRequest(
             input_paths=pdf_files,
             output_dir=output_dir,
             parser_name=custom_settings.parsing.parser,
             overwrite=args.overwrite,
-            parser_config=custom_settings.parsing.gemini
-            if custom_settings.parsing.parser == "gemini"
-            else custom_settings.parsing.marker,
+            parser_config=parser_config,
         )
 
         # Execute parsing

@@ -44,13 +44,22 @@ llm:
 
 # ── Document Ingestion ──────────────────────────────────────────────────
 parsing:
-  parser: "gemini"  # Options: "marker" or "gemini"
+  parser: "gemini"  # Options: "marker", "gemini", or "gemini_visual"
   overwrite: false
 
   gemini:
     model_name: "gemini-3-flash-preview"
     upload_timeout: 300
     safety_settings: true
+
+  # Example config for gemini_visual parser:
+  # gemini_visual:
+  #   task_config_path: "/home/arutamonofu/dev/fast/aee_visual/configs/schema_nanozymes.yaml"
+  #   pipeline_config_path: "/home/arutamonofu/dev/fast/aee_visual/configs/pipeline.yaml"
+  #   gemini:
+  #     model_name: "gemini-3-flash-preview"
+  #     upload_timeout: 300
+  #     safety_settings: true
 
 # ── File Paths ──────────────────────────────────────────────────────────
 # All paths are resolved relative to the project root.
