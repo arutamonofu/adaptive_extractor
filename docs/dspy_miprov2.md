@@ -78,6 +78,53 @@ BOOTSTRAPPED_FEWSHOT_EXAMPLES_IN_CONTEXT = 3  # Examples in context
 LABELED_FEWSHOT_EXAMPLES_IN_CONTEXT = 0       # No manual labeling
 ```
 
+### Comparison: `max_bootstrapped_demos` vs `max_labeled_demos`
+
+In DSPy, few-shot demonstrations in a predictor's prompt can consist of two types of examples:
+1. **Bootstrapped demonstrations** (generated dynamically by running the teacher/student program and verifying correctness against a metric). These contain complete execution traces, including intermediate reasoning steps (such as Chain of Thought or retrieval results).
+2. **Labeled demonstrations** (taken directly from the training dataset as raw input-output pairs). These do not contain any intermediate reasoning steps or module outputs.
+
+The table below summarizes their differences:
+
+| Attribute | Bootstrapped Demonstrations (`max_bootstrapped_demos`) | Labeled Demonstrations (`max_labeled_demos`) |
+| :--- | :--- | :--- |
+| **Source** | Dynamically generated via model execution on training inputs. | Loaded directly from the training dataset. |
+| **Content** | Full execution trace (Inputs $\rightarrow$ Intermediate reasoning $\rightarrow$ Outputs). | Raw fields (Inputs $\rightarrow$ Ground-truth Outputs only). |
+| **Validation** | Verified by the evaluation metric (must exceed `metric_threshold`). | Unverified (assumed correct as they are ground-truth labels). |
+| **Purpose** | Teaches the model *how* to reason step-by-step (Chain of Thought). | Demonstrates expected input/output format and style. |
+
+#### Mutual Logic and Prompt Construction
+
+During the compilation phase (in `BootstrapFewShot`), DSPy combines these two parameters using the following step-by-step logic:
+
+1. **Bootstrapping Phase**: DSPy iterates over the training set and attempts to bootstrap successful traces. It stops once it successfully bootstraps $B$ examples, where:
+   $$B \le \text{max\_bootstrapped\_demos}$$
+2. **Backfilling Phase**: DSPy checks if the number of bootstrapped traces ($B$) is less than the target budget `max_labeled_demos`. If it is, DSPy samples additional raw labeled examples from the training set that were *not* bootstrapped. The number of labeled examples added ($L$) is:
+   $$L = \max(0, \min(\text{max\_labeled\_demos} - B, \text{remaining\_trainset\_examples}))$$
+3. **Final Assembly**: The predictor's demonstrations are constructed by appending the labeled examples to the bootstrapped examples:
+   $$\text{Predictor Demos} = \text{Bootstrapped Demos} + \text{Labeled Demos}$$
+   The total number of demonstrations $N$ in the prompt is:
+   $$N = B + L = \max(B, \min(\text{max\_labeled\_demos}, \text{Total Trainset Size}))$$
+
+#### Configuration Recipes
+
+Depending on your optimization goals, you can configure these parameters to achieve different few-shot styles:
+
+* **Pure Bootstrapped Few-Shot (Default MIPROv2)**:
+  * `max_bootstrapped_demos = 3`, `max_labeled_demos = 0` (or `max_labeled_demos <= 3`, e.g., `0`)
+  * **Result**: Prompt contains only high-quality bootstrapped traces with full step-by-step reasoning steps. No raw labeled examples are backfilled.
+* **Hybrid Few-Shot**:
+  * `max_bootstrapped_demos = 2`, `max_labeled_demos = 4`
+  * **Result**: Prompt contains up to 2 bootstrapped traces (with step-by-step reasoning) and the remaining budget (up to 4 total) is backfilled with 2 raw labeled examples.
+* **Pure Labeled Few-Shot**:
+  * `max_bootstrapped_demos = 0`, `max_labeled_demos = 4`
+  * **Result**: Bootstrapping is skipped entirely. The prompt is populated with up to 4 raw labeled examples from the dataset (no intermediate reasoning steps).
+* **Zero-Shot**:
+  * `max_bootstrapped_demos = 0`, `max_labeled_demos = 0`
+  * **Result**: No demonstrations are included in the prompt.
+  > [!NOTE]
+  > Pure Labeled and Zero-Shot modes require the custom zero-shot support patches (see [patch_dspy_mipro_zero_bootstrap.py](file:///home/arutamonofu/dev/projects/Adaptive%20Extractor/scripts/patch_dspy_mipro_zero_bootstrap.py)) to avoid `randint(1, 0)` range errors and enforce true zero-shot prompting.
+
 ---
 
 ## Step 2: Generate Instruction Candidates
