@@ -73,8 +73,11 @@ The module is structured into the core MIPROv2 self-tuning system and the contra
 | [dataset.py](../src/ae/optimization/dataset.py) | [DataValidator](../src/ae/optimization/dataset.py#L51) | Performs pre-flight validations on train/val splits and document presence. |
 | [tracking.py](../src/ae/optimization/tracking.py) | [ExperimentTracker](../src/ae/optimization/tracking.py#L15) | Manages parameter, metric, and artifact logging in MLflow. |
 | [models.py](../src/ae/optimization/contrastive/models.py) | [AnalysisResult](../src/ae/optimization/contrastive/models.py#L95) | Pydantic data schemas representing verified rules, discrepancies, review decisions, and analysis reports. |
-| [analyzer.py](../src/ae/optimization/contrastive/analyzer.py) | [LocalAnalyzer](../src/ae/optimization/contrastive/analyzer.py#L124) | Compares single document extraction to Ground Truth (Map Phase) with retry logic and read-through caching. |
-| [aggregator.py](../src/ae/optimization/contrastive/aggregator.py) | [StrictAggregator](../src/ae/optimization/contrastive/aggregator.py#L112) | Aggregates individual observations into verified rules or unresolved discrepancies (Reduce Phase) using semantic equivalence checks. |
+| [analyzer.py](../src/ae/optimization/contrastive/analyzer.py) | [LocalAnalyzer](../src/ae/optimization/contrastive/analyzer.py#L23) | Compares single document extraction to Ground Truth (Map Phase) with retry loop, per-attempt isolated signature class, and read-through write-through caching. |
+| [analyzer.py](../src/ae/optimization/contrastive/analyzer.py) | [ContrastiveMapRunner](../src/ae/optimization/contrastive/analyzer.py#L162) | Batches Map-phase execution with a `Semaphore`-bounded concurrency limit. Returns results in **input order** via `asyncio.gather`. |
+| [aggregator.py](../src/ae/optimization/contrastive/aggregator.py) | [StrictAggregator](../src/ae/optimization/contrastive/aggregator.py#L85) | Aggregates individual observations into verified rules or unresolved discrepancies (Reduce Phase) using semantic equivalence checks. |
+| [aggregator.py](../src/ae/optimization/contrastive/aggregator.py) | [SemanticEquivalenceChecker](../src/ae/optimization/contrastive/aggregator.py#L19) | DSPy Signature for the Zero-Tolerance Consensus Judge LLM call. Receives rules as a Markdown bullet list. |
+| [aggregator.py](../src/ae/optimization/contrastive/aggregator.py) | [extract_json](../src/ae/optimization/contrastive/aggregator.py#L45) | Brace-balanced JSON extractor used internally by `aggregator.py`. **No longer imported by `analyzer.py`** (see §7). |
 | [review.py](../src/ae/optimization/contrastive/review.py) | [HumanReviewCLI](../src/ae/optimization/contrastive/review.py#L22) | Command-line interactive review interface for resolving discrepancies. |
 | [builder.py](../src/ae/optimization/contrastive/builder.py) | [build_three_level_prompt](../src/ae/optimization/contrastive/builder.py#L14) | Formulates instructions compiling `[META]`, `[ENTITY]`, and `[SCHEMA]` rules. |
 | [signature.py](../src/ae/core/tasks/signature.py) | [create_signature](../src/ae/core/tasks/signature.py#L20) | Generates dynamic signature classes. When using contrastive prompt instructions, it uses minimal schema definitions and MD5 hashing of the prompt text to avoid DSPy SQLite cache conflicts. |
@@ -146,8 +149,8 @@ flowchart TD
    * [DatasetBuilder](../src/ae/optimization/dataset.py#L326) processes valid document Markdown keys, loads corresponding parsed texts, and loads ground truth records to output compiled sets of `dspy.Example`.
 
 2. **GT Contrastive Analysis Phase (Map-Reduce)**:
-   * **Map Phase (`LocalAnalyzer`)**: For each document in the specified batch, the analyzer queries the Teacher LM to compare the document text with the Ground Truth data. It generates specific observations regarding entity inclusions/exclusions and field formatting/extractions.
-   * **Reduce Phase (`StrictAggregator`)**: Aggregates observations across all documents. Using a `SemanticEquivalenceChecker` backed by the Teacher LM, it evaluates which observation patterns represent a 100% consensus rule and which patterns are contradictory (consensus < 100%), formatting the latter as `Discrepancy` instances.
+   * **Map Phase (`LocalAnalyzer`)**: For each document in the specified batch, the analyzer queries the Teacher LM to compare the document text with the Ground Truth data. On every attempt (including retries), a **fresh anonymous subclass** of `AnalyzeDocumentSignature` is created via `type()`, ensuring complete prompt isolation per coroutine — no shared mutable state between concurrent tasks. It generates specific observations regarding entity inclusions/exclusions and field formatting/extractions.
+   * **Reduce Phase (`StrictAggregator`)**: Aggregates observations across all documents. Before each LLM call, rule formulations are serialized as a **Markdown bullet list** (`- rule text`) to improve model comprehension. The `SemanticEquivalenceChecker` backed by the Teacher LM evaluates which observation patterns represent a 100% consensus rule. The returned `is_unanimous` field is parsed via **`TypeAdapter(bool).validate_python()`** to safely coerce DSPy string outputs (`"True"`, `"False"`, etc.) to actual Python booleans, with a fail-safe fallback to `False` on parse errors.
    * **Interactive Review (`HumanReviewCLI`)**: If discrepancies are found and `auto-skip-review` is false, an interactive prompt runs in the CLI, showing the conflicting patterns, text evidence, and affected documents. The user can select `accept_a`, `accept_b`, provide a `custom_rule`, or `skip`.
    * **Compilation (`build_three_level_prompt`)**: Compiles all verified and user-resolved rules into a structured instruction with three distinct levels:
      * `[META]`: System-wide settings (e.g., direct extraction, no calculations).
@@ -178,8 +181,9 @@ flowchart TD
 │   ├── splits/
 │   │   └── <task_name>.json # JSON data splits (lists of train/val documents)
 │   ├── analysis/
-│   │   ├── <task_name>_analysis_result.json # Serialized contrastive analysis report
-│   │   └── <task_name>_analysis_result.txt  # Compiled 3-level prompt text
+│   │   ├── <task_name>_map_<doc_id>.json        # Per-document Map-phase cache (atomic write)
+│   │   ├── <task_name>_analysis_result.json     # Serialized contrastive analysis report
+│   │   └── <task_name>_analysis_result.txt      # Compiled 3-level prompt text
 │   ├── agents/
 │   │   └── <agent_name>.json # Serialized optimized agent output
 │   └── review_cache/        # Cached human-in-the-loop decisions
@@ -213,7 +217,7 @@ The serialized analysis result is a JSON file conforming to the `AnalysisResult`
       "level": "field",
       "field_name": "km",
       "problem_description": "Inconsistent reporting of Km unit scaling.",
-      "consensus_ratio": 0.75,
+      "consensus_ratio": 0.5,
       "variant_a": "Always convert Km to mM",
       "variant_b": "Keep original Km units (e.g. uM, nM) as specified in text",
       "example_documents": ["c6ra00963h", "j1234567"]
@@ -230,8 +234,7 @@ The serialized analysis result is a JSON file conforming to the `AnalysisResult`
 *   **Contrastive Phase Fallback**: If the contrastive analysis Map-Reduce or aggregation steps fail (e.g., due to API rate limits or model timeouts), the optimizer logs a warning and gracefully falls back to the default signature/instruction config, ensuring optimization runs can complete uninterrupted.
 *   **LLM Connection Resiliency**: LLM client providers implement exponential backoff with random jitter to gracefully recover from network or API rate limits (`429 Too Many Requests`).
 *   **MD5-based Signature Isolation**: Because DSPy uses internal module caching, dynamic signature classes are generated with unique names embedding the MD5 hash of their compiled prompt (e.g., `DynamicExtractionSignature_<hash>`). This prevents signature class pollution and ensures DSPy's SQLite tracking registry evaluates prompts correctly across different runs.
-
----
-
-> [!TIP]
-> Keep at least 3–5 documents in the validation (`val`) split for reliable F1-score evaluation.
+*   **Per-attempt Prompt Isolation (Race Condition Guard)**: Each call to `LocalAnalyzer.analyze()` — including every retry — creates a **new anonymous subclass** of `AnalyzeDocumentSignature` using `type("DynamicAnalyzeSignature", (AnalyzeDocumentSignature,), {"__doc__": instruction})`. This prevents concurrent coroutines (when `max_concurrent > 1`) from overwriting each other's prompts via the shared global class.
+*   **Safe Boolean Coercion (Zero-Tolerance Consensus Guard)**: DSPy's `dspy.Predict` may return boolean output fields as strings (`"True"`, `"False"`). Because any non-empty string is truthy in Python, the raw `result.is_unanimous` field is **never used directly in a conditional**. Instead, `TypeAdapter(bool).validate_python(result.is_unanimous)` from Pydantic handles all edge cases (`"true"`, `"false"`, `"yes"`, `"no"`, `1`, `0`). If parsing fails, the system conservatively defaults to `False`, routing the observation to manual review.
+*   **Self-contained JSON Parser**: `LocalAnalyzer` no longer imports `extract_json` from `aggregator.py`. When a prediction returns a raw string, a local `re.search(r'```(?:json)?\s*(.*?)\s*```', ...)` regex strips Markdown fences before `json.loads()`, eliminating the cross-module dependency and any risk of circular imports.
+*   **Order-Preserving Batch Execution**: `ContrastiveMapRunner.run_batch()` delegates to `asyncio.gather(*tasks)` and returns its result directly. This guarantees the output list index always matches the input list index, regardless of which coroutine finishes first — eliminating the ordering bug caused by non-deterministic `list.append()` side effects in the previous implementation.
