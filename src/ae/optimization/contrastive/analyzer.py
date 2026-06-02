@@ -13,14 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 class AnalyzeDocumentSignature(dspy.Signature):
-    """Анализирует научную статью в сравнении с Ground Truth данными её разметки.
-    Выявляет правила, по которым строки включались в GT (entity-level),
-    а также особенности извлечения и форматирования конкретных полей (field-level).
-    """
-    article_text: str = dspy.InputField(desc="Полный текст научной статьи в формате Markdown")
-    ground_truth_json: str = dspy.InputField(desc="JSON-массив экспериментов из Ground Truth для этой статьи")
-    field_schema: str = dspy.InputField(desc="Спецификация полей извлечения в формате JSON (имена, типы, ограничения)")
-    analysis: DocumentAnalysis = dspy.OutputField(desc="Структурированный результат анализа (DocumentAnalysis)")
+    """Placeholder — overwritten dynamically by LocalAnalyzer._build_prompt_instruction()."""
+    article_text: str = dspy.InputField(desc="Full text of the scientific article in Markdown format")
+    ground_truth_json: str = dspy.InputField(desc="JSON array of Ground Truth experiments for this article")
+    field_schema: str = dspy.InputField(desc="Field extraction specification as JSON (names, types, constraints)")
+    analysis: DocumentAnalysis = dspy.OutputField(desc="Structured analysis result conforming to DocumentAnalysis schema")
 
 
 class LocalAnalyzer:
@@ -31,8 +28,39 @@ class LocalAnalyzer:
         self.task_config = task_config
         self.cache_dir = Path(cache_dir)
         self.rate_limit_delay = rate_limit_delay
-        # Использование Predict с Pydantic-аннотациями в сигнатуре
+        # Предиктор будет пересоздан динамически в analyze() перед каждым вызовом
         self.predictor = dspy.Predict(AnalyzeDocumentSignature)
+
+    def _build_prompt_instruction(self, error_context: Optional[str] = None) -> str:
+        """Формирует расширенную системную инструкцию со строго заданной матрицей вопросов."""
+        instruction = (
+            "You are an expert data engineer and scientist specializing in chemical informatics and structured information extraction.\n"
+            "Your task is to perform a strict contrastive audit and reverse-engineer the hidden extraction rules applied by human curators.\n"
+            "You will be given the full text of a scientific article (in Markdown), a JSON array of ideal Ground Truth (GT) experiments "
+            "extracted from this article, and the target field schema specification.\n\n"
+            "Analyze the gap between the raw text and the provided Ground Truth by answering the following systematic matrix:\n\n"
+            "1. ENTITY-LEVEL ANALYSIS (Row Filtration Logic) -> Map to `EntityObservation` objects:\n"
+            "   - What WAS extracted? (included=true) Identify shared context and inclusion criteria. Provide direct quote as `evidence`.\n"
+            "   - What was NOT extracted? (included=false) Find similar entities deliberately omitted. Deduce the exact exclusion boundary. Provide `evidence`.\n\n"
+            "2. FIELD-LEVEL ANALYSIS (Column Logic for EACH schema field) -> Map to `FieldObservation` objects:\n"
+            "   For each field, deduce the rules and categorize them using strictly these `observation_type`s:\n"
+            "   - 'extraction_included': Why a specific value was extracted.\n"
+            "   - 'extraction_excluded': Why context was present but left null/empty in GT (e.g., ambiguous data).\n"
+            "   - 'format_applied': How raw text was transformed into the final GT value (e.g., unit conversion to mM, rounding).\n"
+            "   - 'format_rejected': How it COULD have been recorded based on raw text but wasn't (e.g., discarding ± error margins).\n"
+            "   Include the 'field_name', rule 'description', 'evidence' (quote), and final 'gt_value' for each observation.\n\n"
+            "CRITICAL CONSTRAINTS:\n"
+            "- Do not hallucinate. Every deduced rule must be backed by direct quotes/evidence from the article text.\n"
+            "- Your output must strictly conform to the DocumentAnalysis JSON schema."
+        )
+
+        if error_context:
+            instruction += (
+                f"\n\n[WARNING: Your previous attempt failed validation with the following error:\n{error_context}\n"
+                f"Analyze the error, fix the structure, and ensure 100% strict JSON/Pydantic compliance without any markdown wrappers!]"
+            )
+
+        return instruction
 
     async def analyze(self, input_data: AnalysisInput) -> DocumentAnalysis:
         """Выполняет LLM-анализ одного документа с поддержкой кэширования и повторных запросов."""
@@ -68,27 +96,23 @@ class LocalAnalyzer:
         
         for attempt in range(max_retries + 1):
             try:
-                # Настраиваем параметры генерации с учетом контекста и потенциальной ошибки
+                # Динамически и безопасно создаем изолированный класс сигнатуры для этой попытки
+                current_instruction = self._build_prompt_instruction(validation_error_feedback)
+                DynamicAnalyzeSignature = type(
+                    "DynamicAnalyzeSignature",
+                    (AnalyzeDocumentSignature,),
+                    {"__doc__": current_instruction}
+                )
+
+                # Пересоздаем предиктор с изолированной сигнатурой
+                self.predictor = dspy.Predict(DynamicAnalyzeSignature)
+
                 with dspy.settings.context(lm=self.lm):
-                    if validation_error_feedback:
-                        # В случае ошибки на предыдущем шаге, просим модель исправить её
-                        prompt_instructions = (
-                            f"\n[ВНИМАНИЕ]: Твой предыдущий ответ вызвал ошибку валидации:\n"
-                            f"{validation_error_feedback}\n"
-                            f"Пожалуйста, проанализируй ошибку, исправь структуру JSON и "
-                            f"верни строго валидный JSON, соответствующий схеме DocumentAnalysis."
-                        )
-                        prediction = self.predictor(
-                            article_text=input_data.document_text + prompt_instructions,
-                            ground_truth_json=gt_json_str,
-                            field_schema=field_schema_str
-                        )
-                    else:
-                        prediction = self.predictor(
-                            article_text=input_data.document_text,
-                            ground_truth_json=gt_json_str,
-                            field_schema=field_schema_str
-                        )
+                    prediction = self.predictor(
+                        article_text=input_data.document_text,
+                        ground_truth_json=gt_json_str,
+                        field_schema=field_schema_str
+                    )
                 
                 # Дополнительная строгая рантайм-валидация через Pydantic
                 analysis_result = prediction.analysis
@@ -97,8 +121,11 @@ class LocalAnalyzer:
                 elif isinstance(analysis_result, dict):
                     validated_data = DocumentAnalysis.model_validate(analysis_result)
                 elif isinstance(analysis_result, str):
-                    from ae.optimization.contrastive.aggregator import extract_json
-                    parsed_dict = extract_json(analysis_result)
+                    import re
+                    # Безопасно очищаем маркдаун-обертку ```json ... ``` и парсим JSON
+                    match = re.search(r'```(?:json)?\s*(.*?)\s*```', analysis_result, re.DOTALL)
+                    clean_str = match.group(1) if match else analysis_result.strip()
+                    parsed_dict = json.loads(clean_str)
                     validated_data = DocumentAnalysis.model_validate(parsed_dict)
                 else:
                     validated_data = DocumentAnalysis.model_validate(analysis_result)
@@ -144,32 +171,32 @@ class ContrastiveMapRunner:
         inputs: List[AnalysisInput],
         progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> List[DocumentAnalysis]:
-        """Последовательно или конкурентно (с семафором) запускает анализ документов."""
-        results = []
+        """Последовательно или конкурентно запускает анализ с сохранением порядка."""
         semaphore = asyncio.Semaphore(self.max_concurrent)
+        completed_count = 0
 
         async def _run_one(inp: AnalysisInput, idx: int):
+            nonlocal completed_count
             async with semaphore:
                 try:
                     res = await self.analyzer.analyze(inp)
-                    results.append(res)
                 except Exception as e:
                     logger.error(f"Ошибка при анализе документа {inp.document_id}: {e}")
-                    # Возвращаем частичный результат с описанием ошибки
-                    results.append(DocumentAnalysis(
+                    res = DocumentAnalysis(
                         document_id=inp.document_id,
                         entity_observations=[],
                         field_observations=[],
                         summary=f"Ошибка анализа: {str(e)}"
-                    ))
+                    )
                 finally:
                     if progress_callback:
-                        progress_callback(len(results), len(inputs))
+                        completed_count += 1
+                        progress_callback(completed_count, len(inputs))
+                return res
 
-        # Запускаем таски
+        # asyncio.gather автоматически возвращает результаты в исходном порядке
         tasks = [_run_one(inp, i) for i, inp in enumerate(inputs)]
-        await asyncio.gather(*tasks)
-        return results
+        return list(await asyncio.gather(*tasks))
 
 
 def prepare_analysis_inputs(

@@ -16,51 +16,30 @@ from ae.optimization.contrastive.models import (
 logger = logging.getLogger(__name__)
 
 
-class AggregateRulesSignature(dspy.Signature):
-    """Анализирует списки наблюдений из множества документов, группирует их
-    и возвращает список кандидатов правил и противоречий в формате JSON.
-    
-    Выходная JSON-строка должна иметь следующий формат:
-    {
-      "verified_rules": [
-        {
-          "rule_id": "rule_1",
-          "level": "entity",
-          "field_name": null,
-          "rule_text": "description of the rule",
-          "evidence_count": 5,
-          "evidence_examples": ["evidence 1", "evidence 2"]
-        }
-      ],
-      "discrepancies": [
-        {
-          "discrepancy_id": "disc_1",
-          "level": "entity",
-          "field_name": null,
-          "problem_description": "description of the conflict",
-          "consensus_ratio": 0.8,
-          "variant_a": "interpretation A",
-          "variant_b": "interpretation B",
-          "example_documents": ["doc1", "doc2"]
-        }
-      ]
-    }
-    """
-    entity_observations_json: str = dspy.InputField(desc="Сгруппированные наблюдения уровня сущности по всем документам")
-    field_observations_json: str = dspy.InputField(desc="Сгруппированные наблюдения уровня схемы для конкретного поля (полей)")
-    field_schema: str = dspy.InputField(desc="Описание целевых полей")
-    num_documents: int = dspy.InputField(desc="Общее количество проанализированных документов")
-    rules_and_discrepancies: str = dspy.OutputField(desc="JSON-строка с массивом VerifiedRule и Discrepancy в указанном формате")
-
-
 class SemanticEquivalenceChecker(dspy.Signature):
-    """Проверяет список текстовых формулировок правил от разных документов
-    на семантическую эквивалентность и формирует единую выверенную формулировку.
     """
-    rules: list[str] = dspy.InputField(desc="Список текстовых формулировок одного правила из разных документов")
-    is_unanimous: bool = dspy.OutputField(desc="Флаг консенсуса: True, если все формулировки означают семантически одно и то же; False, если есть содержательные противоречия")
-    consolidated_rule: str = dspy.OutputField(desc="Единая лаконичная выверенная формулировка правила на английском языке (если is_unanimous=True)")
-    discrepancy_description: str = dspy.OutputField(desc="Подробное описание природы расхождения/конфликта (если is_unanimous=False)")
+    You are a strict logic arbiter (Zero-Tolerance Consensus Judge).
+    You will be provided with a list of natural language rule formulations extracted from multiple scientific papers for a SINGLE specific field or entity.
+    These rules were formulated by independent local AI agents.
+
+    ANALYSIS PROTOCOL:
+    1. Read all rule formulations provided in the input list.
+    2. Ignore syntax, grammar, and synonyms (e.g., 'converted to Celsius' and 'format changed to °C' are logically identical).
+    3. Determine if ALL rules enforce the exact same extraction and formatting logic without any contradictions.
+
+    OUTPUT PROTOCOL:
+    - is_unanimous (bool): True ONLY IF 100% of the formulations mean the exact same thing logically. False if there is even one contradiction or alternative condition.
+    - consolidated_rule (str): If is_unanimous is True, synthesize a single, clear, imperative-mood instruction in English (e.g., 'Always convert temperature to Celsius'). If False, output an empty string.
+    - discrepancy_description (str): If is_unanimous is False, write a detailed explanation of the logical conflict (e.g., '8 agents ignored values without units, but 2 agents extracted them'). If True, output an empty string.
+    """
+
+    context_name: str = dspy.InputField(desc="The name of the schema field being evaluated, or 'ENTITY_LEVEL'.")
+    rule_formulations: list[str] = dspy.InputField(desc="List of textual rules extracted from different documents.")
+
+    is_unanimous: bool = dspy.OutputField(desc="True if 100% logical consensus is reached, otherwise False.")
+    consolidated_rule: str = dspy.OutputField(desc="The unified rule if unanimous, otherwise empty.")
+    discrepancy_description: str = dspy.OutputField(desc="Description of the conflict if not unanimous, otherwise empty.")
+
 
 
 def extract_json(text: str) -> Any:
@@ -104,17 +83,17 @@ def extract_json(text: str) -> Any:
 
 
 class StrictAggregator:
-    """Агрегирует наблюдения и формирует итоговый набор верифицированных правил."""
+    """Агрегирует наблюдения и формирует итоговый набор верифицированных правил через точечный семантический судью."""
 
     def __init__(self, lm: dspy.LM, task_config: TaskConfig, cache_dir: str = "data/analysis"):
         self.lm = lm
         self.task_config = task_config
         self.cache_dir = Path(cache_dir)
-        self.agg_predictor = dspy.Predict(AggregateRulesSignature)
-        self.checker_predictor = dspy.Predict(SemanticEquivalenceChecker)
+        self.predictor = dspy.Predict(SemanticEquivalenceChecker)
+
 
     def aggregate(self, analyses: List[DocumentAnalysis]) -> AnalysisResult:
-        """Агрегирует наблюдения по всем проанализированным документам."""
+        """Агрегирует наблюдения по всем проанализированным документам через точечный семантический судью."""
         num_documents = len(analyses)
         if num_documents < 5:
             logger.warning(
@@ -122,204 +101,151 @@ class StrictAggregator:
                 f"Консенсус может быть статистически недостоверным."
             )
 
-        # 1. Сбор наблюдений
-        entity_obs_list = []
-        field_obs_by_field: Dict[str, List[Dict[str, Any]]] = {}
+        # ------------------------------------------------------------------ #
+        # Шаг 1: Сбор данных из всех DocumentAnalysis
+        # ------------------------------------------------------------------ #
+
+        # entity-уровень: список (description, doc_id)
+        entity_formulations: List[str] = []
+        entity_doc_ids: List[str] = []
+
+        # field-уровень: ключ = (field_name, observation_type) -> [(description, doc_id)]
+        field_groups: Dict[tuple, List[tuple]] = {}
 
         for doc_analysis in analyses:
             doc_id = doc_analysis.document_id
+
             for ent_obs in doc_analysis.entity_observations:
-                entity_obs_list.append({
-                    "document_id": doc_id,
-                    "description": ent_obs.description,
-                    "evidence": ent_obs.evidence,
-                    "included": ent_obs.included
-                })
+                entity_formulations.append(ent_obs.description)
+                entity_doc_ids.append(doc_id)
+
             for field_obs in doc_analysis.field_observations:
-                f_name = field_obs.field_name
-                if f_name not in field_obs_by_field:
-                    field_obs_by_field[f_name] = []
-                field_obs_by_field[f_name].append({
-                    "document_id": doc_id,
-                    "observation_type": field_obs.observation_type,
-                    "description": field_obs.description,
-                    "evidence": field_obs.evidence,
-                    "gt_value": field_obs.gt_value
-                })
+                key = (field_obs.field_name, field_obs.observation_type)
+                if key not in field_groups:
+                    field_groups[key] = []
+                field_groups[key].append((field_obs.description, doc_id))
 
-        # Спецификация полей
-        field_schema_dict = {}
-        for name, spec in self.task_config.experiment_fields.items():
-            type_str = spec.type.__name__ if hasattr(spec.type, "__name__") else str(spec.type)
-            field_schema_dict[name] = {
-                "field_name": name,
-                "field_type": type_str,
-                "description": spec.description,
-                "required": spec.required
-            }
-        field_schema_str = json.dumps(field_schema_dict, ensure_ascii=False)
-
+        # ------------------------------------------------------------------ #
+        # Шаг 2: Точечные LLM-вызовы через SemanticEquivalenceChecker
+        # ------------------------------------------------------------------ #
         verified_rules: List[VerifiedRule] = []
         discrepancies: List[Discrepancy] = []
 
-        # 2. Выделение правил уровня сущности (1 вызов LLM)
-        if entity_obs_list:
-            logger.info("Агрегируем правила уровня сущностей...")
-            entity_obs_json = json.dumps(entity_obs_list, ensure_ascii=False)
+        def _run_checker(
+            context_name: str,
+            formulations: List[str],
+            doc_ids: List[str],
+            level: str,
+            field_name: Optional[str],
+            rule_id_prefix: str,
+        ) -> None:
+            """Helper: запускает SemanticEquivalenceChecker для одной группы формулировок и
+            добавляет VerifiedRule или Discrepancy в соответствующий список."""
+            if not formulations:
+                return
+
             try:
+                # Оптимизируем формат для LLM: переводим в читаемый markdown-список
+                formatted_rules = "\n".join([f"- {desc}" for desc in formulations])
+
                 with dspy.settings.context(lm=self.lm):
-                    prediction = self.agg_predictor(
-                        entity_observations_json=entity_obs_json,
-                        field_observations_json="[]",
-                        field_schema=field_schema_str,
-                        num_documents=num_documents
+                    result = self.predictor(
+                        context_name=context_name,
+                        rule_formulations=formatted_rules,
                     )
-                
-                # Парсим JSON
-                res_data = extract_json(prediction.rules_and_discrepancies)
-                
-                # Сохраняем сырой результат для отладки
-                self.cache_dir.mkdir(parents=True, exist_ok=True)
-                raw_path = self.cache_dir / f"{self.task_config.name}_raw_entity_aggregation.json"
-                with open(raw_path, "w", encoding="utf-8") as f:
-                    json.dump(res_data, f, ensure_ascii=False, indent=2)
 
-                # Обрабатываем правила уровня сущности
-                rules_candidates = res_data.get("verified_rules", [])
-                for idx, r in enumerate(rules_candidates):
-                    # Валидируем evidence_count
-                    ev_count = int(r.get("evidence_count", 1))
-                    if ev_count <= 0:
-                        ev_count = 1
-                    
-                    verified_rules.append(VerifiedRule(
-                        rule_id=f"rule_ent_{idx}",
-                        level="entity",
-                        field_name=None,
-                        rule_text=r.get("rule_text", ""),
-                        evidence_count=ev_count,
-                        evidence_examples=r.get("evidence_examples", [])
-                    ))
-
-                disc_candidates = res_data.get("discrepancies", [])
-                for idx, d in enumerate(disc_candidates):
-                    # Валидируем consensus_ratio
-                    ratio = float(d.get("consensus_ratio", 0.5))
-                    if not (0.0 < ratio < 1.0):
-                        ratio = 0.5
-                        
-                    discrepancies.append(Discrepancy(
-                        discrepancy_id=f"disc_ent_{idx}",
-                        level="entity",
-                        field_name=None,
-                        problem_description=d.get("problem_description", ""),
-                        consensus_ratio=ratio,
-                        variant_a=d.get("variant_a", ""),
-                        variant_b=d.get("variant_b", ""),
-                        example_documents=d.get("example_documents", [])
-                    ))
-            except Exception as e:
-                logger.error(f"Ошибка при агрегации правил уровня сущности: {e}")
-
-        # 3. Выделение правил уровня полей (по каждому полю отдельно или пакетами)
-        for field_name, f_obs in field_obs_by_field.items():
-            if not f_obs:
-                continue
-            
-            logger.info(f"Агрегируем правила для поля '{field_name}'...")
-            f_obs_json = json.dumps(f_obs, ensure_ascii=False)
-            
-            try:
-                with dspy.settings.context(lm=self.lm):
-                    prediction = self.agg_predictor(
-                        entity_observations_json="[]",
-                        field_observations_json=f_obs_json,
-                        field_schema=json.dumps({field_name: field_schema_dict.get(field_name, {})}, ensure_ascii=False),
-                        num_documents=num_documents
+                # Безопасно парсим булево значение через Pydantic TypeAdapter
+                from pydantic import TypeAdapter
+                try:
+                    is_un = TypeAdapter(bool).validate_python(result.is_unanimous)
+                except Exception as parse_err:
+                    logger.warning(
+                        f"Не удалось распознать булево значение '{result.is_unanimous}' "
+                        f"для контекста '{context_name}'. Ошибка: {parse_err}. "
+                        f"Принудительно отправляем на ручной разбор."
                     )
-                
-                res_data = extract_json(prediction.rules_and_discrepancies)
-                
-                # Сохраняем сырой результат для отладки
-                raw_path = self.cache_dir / f"{self.task_config.name}_raw_field_{field_name}_aggregation.json"
-                with open(raw_path, "w", encoding="utf-8") as f:
-                    json.dump(res_data, f, ensure_ascii=False, indent=2)
+                    is_un = False
 
-                rules_candidates = res_data.get("verified_rules", [])
-                for idx, r in enumerate(rules_candidates):
-                    # Проверяем семантическую эквивалентность формулировок, если у правила много свидетельств
-                    evidence_examples = r.get("evidence_examples", [])
-                    rule_text = r.get("rule_text", "")
-                    
-                    if len(evidence_examples) > 1:
-                        # Запускаем SemanticEquivalenceChecker для проверки консенсуса формулировок
-                        try:
-                            with dspy.settings.context(lm=self.lm):
-                                check_res = self.checker_predictor(
-                                    rules=[rule_text] + evidence_examples
-                                )
-                            
-                            if check_res.is_unanimous:
-                                rule_text = check_res.consolidated_rule
-                            else:
-                                # Иначе превращаем это в расхождение
-                                discrepancies.append(Discrepancy(
-                                    discrepancy_id=f"disc_fld_eq_{field_name}_{len(discrepancies)}",
-                                    level="field",
-                                    field_name=field_name,
-                                    problem_description=check_res.discrepancy_description or f"Wording contradiction for field {field_name}",
-                                    consensus_ratio=0.5,
-                                    variant_a=rule_text,
-                                    variant_b=evidence_examples[0] if evidence_examples else "",
-                                    example_documents=r.get("example_documents", []) or [doc_analysis.document_id for doc_analysis in analyses][:2]
-                                ))
-                                continue
-                        except Exception as check_err:
-                            logger.warning(f"Ошибка проверки семантической эквивалентности: {check_err}")
-
-                    ev_count = int(r.get("evidence_count", 1))
-                    if ev_count <= 0:
-                        ev_count = 1
-
-                    # Если правило выполняется не во всех документах, где это поле встретилось
-                    # (например, ev_count < num_documents), но в LLM-отчете оно попало в verified_rules,
-                    # то при строгой zero-tolerance политике, если есть альтернативное поведение, это discrepancy.
-                    # Но если в других документах поле просто было пустым/отсутствовало, то это не противоречие.
-                    # Поэтому мы доверяем результату LLM-агрегатора, но принудительно проверяем.
+                if is_un:
+                    rule_idx = len(verified_rules)
                     verified_rules.append(VerifiedRule(
-                        rule_id=f"rule_fld_{field_name}_{len(verified_rules)}",
-                        level="field",
+                        rule_id=f"{rule_id_prefix}_{rule_idx}",
+                        level=level,
                         field_name=field_name,
-                        rule_text=rule_text,
-                        evidence_count=ev_count,
-                        evidence_examples=evidence_examples
+                        rule_text=result.consolidated_rule or formulations[0],
+                        evidence_count=len(formulations),
+                        evidence_examples=formulations[:3],
                     ))
-
-                disc_candidates = res_data.get("discrepancies", [])
-                for idx, d in enumerate(disc_candidates):
-                    ratio = float(d.get("consensus_ratio", 0.5))
-                    if not (0.0 < ratio < 1.0):
-                        ratio = 0.5
-                        
+                    logger.info(
+                        f"[Консенсус достигнут] context='{context_name}', "
+                        f"n={len(formulations)} формулировок"
+                    )
+                else:
+                    # Семантические противоречия: примерный consensus_ratio как доля
+                    # большинства (0.5 по умолчанию, точная математика LLM-судьёй не ведёт)
+                    disc_idx = len(discrepancies)
+                    unique_doc_ids = list(dict.fromkeys(doc_ids))  # порядок сохранён
                     discrepancies.append(Discrepancy(
-                        discrepancy_id=f"disc_fld_{field_name}_{len(discrepancies)}",
-                        level="field",
+                        discrepancy_id=f"{rule_id_prefix}_disc_{disc_idx}",
+                        level=level,
                         field_name=field_name,
-                        problem_description=d.get("problem_description", ""),
-                        consensus_ratio=ratio,
-                        variant_a=d.get("variant_a", ""),
-                        variant_b=d.get("variant_b", ""),
-                        example_documents=d.get("example_documents", [])
+                        problem_description=result.discrepancy_description or f"Semantic conflict in '{context_name}'",
+                        consensus_ratio=0.5,
+                        variant_a=formulations[0] if len(formulations) > 0 else "",
+                        variant_b=formulations[1] if len(formulations) > 1 else "",
+                        example_documents=unique_doc_ids[:5],
                     ))
+                    logger.warning(
+                        f"[Противоречие выявлено] context='{context_name}': "
+                        f"{result.discrepancy_description!r}"
+                    )
             except Exception as e:
-                logger.error(f"Ошибка при агрегации правил для поля '{field_name}': {e}")
+                logger.error(
+                    f"Ошибка SemanticEquivalenceChecker для context='{context_name}': {e}"
+                )
 
-        # Формируем итоговый результат
+        # --- Entity-level group (ENTITY_LEVEL) ---
+        if entity_formulations:
+            logger.info(
+                f"Агрегация entity-level: {len(entity_formulations)} формулировок из {num_documents} документов"
+            )
+            _run_checker(
+                context_name="ENTITY_LEVEL",
+                formulations=entity_formulations,
+                doc_ids=entity_doc_ids,
+                level="entity",
+                field_name=None,
+                rule_id_prefix="rule_ent",
+            )
+
+        # --- Field-level groups (field_name + observation_type) ---
+        for (field_name, obs_type), pairs in field_groups.items():
+            formulations = [desc for desc, _ in pairs]
+            doc_ids = [did for _, did in pairs]
+            context_name = f"{field_name}::{obs_type}"
+
+            logger.info(
+                f"Агрегация field-level: context='{context_name}', "
+                f"{len(formulations)} формулировок"
+            )
+            _run_checker(
+                context_name=context_name,
+                formulations=formulations,
+                doc_ids=doc_ids,
+                level="field",
+                field_name=field_name,
+                rule_id_prefix=f"rule_fld_{field_name}_{obs_type}",
+            )
+
+        # ------------------------------------------------------------------ #
+        # Шаг 3: Формируем итоговый результат
+        # ------------------------------------------------------------------ #
         result = AnalysisResult(
             task_name=self.task_config.name,
             analyzed_documents=num_documents,
             verified_rules=verified_rules,
             discrepancies=discrepancies,
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now().isoformat(),
         )
         return result
+
