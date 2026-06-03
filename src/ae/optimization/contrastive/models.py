@@ -36,15 +36,6 @@ class AnalysisInput(BaseModel):
     field_specs: Dict[str, FieldSpecSummary]  # имя поля -> краткая спецификация
 
 
-class EntityObservation(BaseModel):
-    """Единичное наблюдение о включении/исключении сущности (строки)."""
-    model_config = ConfigDict(frozen=False)
-
-    description: str  # описание наблюдения
-    evidence: str  # цитата или ссылка из статьи
-    included: bool  # True = сущность включена в GT, False = исключена (пропущена)
-
-
 class FieldObservation(BaseModel):
     """Единичное наблюдение о качестве извлечения/форматирования поля."""
     model_config = ConfigDict(frozen=False)
@@ -56,13 +47,25 @@ class FieldObservation(BaseModel):
     gt_value: Optional[str] = None  # фактическое значение GT, если применимо
 
 
+class EntityObservation(BaseModel):
+    """Единичное наблюдение о включении/исключении сущности (строки)."""
+    model_config = ConfigDict(frozen=False)
+
+    description: str  # описание наблюдения
+    evidence: str  # цитата или ссылка из статьи
+    included: bool  # True = сущность включена в GT, False = исключена (пропущена)
+    field_observations: List[FieldObservation] = Field(
+        default_factory=list,
+        description="Заполняется ТОЛЬКО если included=True. Описывает логику полей для данной конкретной сущности."
+    )
+
+
 class DocumentAnalysis(BaseModel):
     """Полный результат анализа для одной пары документ-GT."""
     model_config = ConfigDict(frozen=False)
 
     document_id: str
     entity_observations: List[EntityObservation]
-    field_observations: List[FieldObservation]
     summary: str  # краткое резюме ключевых находок
 
 

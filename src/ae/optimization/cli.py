@@ -237,17 +237,21 @@ def optimize_command(argv: Optional[List[str]] = None) -> int:
                 else:
                     logger.info("Running Map-Reduce contrastive analysis...")
                     import json
+                    import pandas as pd
+                    from ae.optimization.dataset import get_global_snapshot
+                    
                     with open(custom_settings.paths.splits_file, "r") as f:
                         splits = json.load(f)
                     train_ids = splits.get("train", [])[:args.analysis_batch_size]
                     
                     doc_repo = DocumentRepository(parsed_dir=custom_settings.paths.parsed_dir)
+                    from ae.core.storage.ground_truth import _normalize_document_key
                     documents = {}
                     for doc_id in train_ids:
                         try:
-                            doc = doc_repo.get(doc_id)
-                            if doc:
-                                documents[doc_id] = doc.content
+                            doc_text = doc_repo.get(doc_id)
+                            if doc_text:
+                                documents[_normalize_document_key(doc_id)] = doc_text
                         except Exception as e:
                             logger.warning(f"Failed to load document {doc_id}: {e}")
                     
@@ -260,14 +264,47 @@ def optimize_command(argv: Optional[List[str]] = None) -> int:
                     if not teacher_lm:
                         logger.error("Teacher LM is required for contrastive analysis")
                         return 1
+                        
+                    # Extract contexts (Shift Left artifacts)
+                    try:
+                        gt_df = pd.read_csv(gt_path_loc)
+                        global_snapshot = get_global_snapshot(gt_df)
+                    except Exception as e:
+                        logger.warning(f"Failed to create global snapshot: {e}")
+                        global_snapshot = {}
+
+                    try:
+                        instruction_text = Path(task["config"].initial_instruction_file).read_text(encoding="utf-8")
+                    except Exception as e:
+                        logger.warning(f"Failed to read instruction file: {e}")
+                        instruction_text = ""
+
+                    try:
+                        schema_path = Path(f"config/tasks/{task_name}/initial_schema.yaml")
+                        schema_text = schema_path.read_text(encoding="utf-8") if schema_path.exists() else ""
+                    except Exception as e:
+                        logger.warning(f"Failed to read schema file: {e}")
+                        schema_text = ""
                     
-                    analyzer = LocalAnalyzer(lm=teacher_lm, task_config=task["config"], cache_dir=str(analysis_dir))
+                    analyzer = LocalAnalyzer(
+                        lm=teacher_lm, 
+                        task_config=task["config"], 
+                        cache_dir=str(analysis_dir),
+                        instruction_text=instruction_text,
+                        schema_text=schema_text,
+                        global_snapshot=global_snapshot
+                    )
                     runner = ContrastiveMapRunner(analyzer=analyzer, max_concurrent=1)
                     
                     import asyncio
                     map_results = asyncio.run(runner.run_batch(inputs))
                     
-                    aggregator = StrictAggregator(lm=teacher_lm, task_config=task["config"], cache_dir=str(analysis_dir))
+                    aggregator = StrictAggregator(
+                        lm=teacher_lm, 
+                        task_config=task["config"], 
+                        cache_dir=str(analysis_dir),
+                        global_snapshot=global_snapshot
+                    )
                     analysis_result = aggregator.aggregate(map_results)
                     
                     analysis_result_path = analysis_dir / f"{task_name}_analysis_result.json"
@@ -432,8 +469,6 @@ def optimize_command(argv: Optional[List[str]] = None) -> int:
                 save_optimization_history(student_lm, teacher_lm, history_dir)
 
 
-
-
 import click
 
 @click.group()
@@ -441,7 +476,7 @@ def cli():
     pass
 
 @click.command("analyze")
-@click.option("--config", default="config/core.yaml", help="Путь к core.yaml")
+@click.option("--config", default="config", help="Путь к директории конфигурации")
 @click.option("--batch-size", default=10, help="Количество документов для анализа")
 @click.option("--output", default=None, help="Путь для сохранения итогового JSON результатов")
 @click.option("--auto-skip-review", is_flag=True, help="Пропустить интерактивный разбор")
@@ -466,18 +501,23 @@ def analyze_command(config, batch_size, output, auto_skip_review):
     dataset_builder = DatasetBuilder(document_repo=doc_repo, gt_repo=gt_repo)
     
     import json
+    import pandas as pd
+    from ae.optimization.dataset import get_global_snapshot
+    
     with open(settings.paths.splits_file, "r") as f:
         splits = json.load(f)
     train_ids = splits.get("train", [])[:batch_size]
     
-    gt_data = gt_repo.load(settings.paths.ground_truth_dir / f"{task_name}.csv", task["row_converter"])
+    gt_path_loc = settings.paths.ground_truth_dir / f"{task_name}.csv"
+    gt_data = gt_repo.load(gt_path_loc, task["row_converter"])
     
+    from ae.core.storage.ground_truth import _normalize_document_key
     documents = {}
     for doc_id in train_ids:
         try:
-            doc = doc_repo.get(doc_id)
-            if doc:
-                documents[doc_id] = doc.content
+            doc_text = doc_repo.get(doc_id)
+            if doc_text:
+                documents[_normalize_document_key(doc_id)] = doc_text
         except Exception as e:
             logger.warning(f"Failed to load document {doc_id}: {e}")
             
@@ -491,15 +531,48 @@ def analyze_command(config, batch_size, output, auto_skip_review):
         build_three_level_prompt,
     )
     
+    # Extract Contexts
+    try:
+        gt_df = pd.read_csv(gt_path_loc)
+        global_snapshot = get_global_snapshot(gt_df)
+    except Exception as e:
+        logger.warning(f"Failed to create global snapshot: {e}")
+        global_snapshot = {}
+
+    try:
+        instruction_text = Path(task_config.initial_instruction_file).read_text(encoding="utf-8")
+    except Exception as e:
+        logger.warning(f"Failed to read instruction file: {e}")
+        instruction_text = ""
+
+    try:
+        schema_path = Path(f"config/tasks/{task_name}/initial_schema.yaml")
+        schema_text = schema_path.read_text(encoding="utf-8") if schema_path.exists() else ""
+    except Exception as e:
+        logger.warning(f"Failed to read schema file: {e}")
+        schema_text = ""
+
     inputs = prepare_analysis_inputs(task_config, train_ids, documents, gt_data)
     
-    analyzer = LocalAnalyzer(lm=teacher_lm, task_config=task_config, cache_dir="data/analysis")
+    analyzer = LocalAnalyzer(
+        lm=teacher_lm, 
+        task_config=task_config, 
+        cache_dir="data/analysis",
+        instruction_text=instruction_text,
+        schema_text=schema_text,
+        global_snapshot=global_snapshot
+    )
     runner = ContrastiveMapRunner(analyzer=analyzer, max_concurrent=1)
     
     import asyncio
     map_results = asyncio.run(runner.run_batch(inputs))
     
-    aggregator = StrictAggregator(lm=teacher_lm, task_config=task_config, cache_dir="data/analysis")
+    aggregator = StrictAggregator(
+        lm=teacher_lm, 
+        task_config=task_config, 
+        cache_dir="data/analysis",
+        global_snapshot=global_snapshot
+    )
     analysis_result = aggregator.aggregate(map_results)
     
     if not auto_skip_review and analysis_result.has_discrepancies():

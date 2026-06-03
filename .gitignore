@@ -44,6 +44,7 @@ environment.yml.local
 # --- Data (raw & intermediate) ---
 data/extractions/*
 data/pdf/*
+data/analysis/*
 
 !data/.gitkeep
 !data/*/.gitkeep

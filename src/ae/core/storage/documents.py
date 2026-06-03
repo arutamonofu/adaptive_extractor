@@ -203,6 +203,47 @@ class DocumentRepository:
 
         return keys
 
+    def get(self, document_key: str, directory: Optional[Path] = None) -> Optional[str]:
+        """Load a document by key, using case-insensitive (lower) filename lookup.
+
+        Args:
+            document_key: Document key (e.g. ``ANGE.201904751``). The key is
+                normalised to lower-case before searching so that it matches
+                files stored with lower-case names.
+            directory: Directory to search (uses default if None).
+
+        Returns:
+            Document text content, or ``None`` if the document is not found.
+        """
+        load_dir = Path(directory) if directory else self.parsed_dir
+
+        if load_dir is None:
+            return None
+
+        key_lower = document_key.lower().strip()
+
+        # Try exact lower-case match first
+        for suffix in ["", "_parsed", "_processed", "_result"]:
+            candidate = load_dir / f"{key_lower}{suffix}.md"
+            if candidate.exists():
+                try:
+                    return self.load(candidate)
+                except Exception as e:
+                    logger.warning(f"Failed to read {candidate}: {e}")
+                    return None
+
+        # Fallback: scan directory for a case-insensitive match
+        if load_dir.exists():
+            for file_path in load_dir.glob("*.md"):
+                if file_path.stem.lower() == key_lower:
+                    try:
+                        return self.load(file_path)
+                    except Exception as e:
+                        logger.warning(f"Failed to read {file_path}: {e}")
+                        return None
+
+        return None
+
     def exists(self, document_key: str, directory: Optional[Path] = None) -> bool:
         """Check if a document exists.
 

@@ -47,7 +47,7 @@ llm:
       max_tokens: 8192
       base_url: "https://openrouter.ai/api/v1"
       reasoning:
-        enabled: false
+        enabled: true
 
 # Directory and file system paths relative to the project root
 paths:

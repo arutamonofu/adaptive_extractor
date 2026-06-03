@@ -17,7 +17,6 @@ from .analyzer import (
     prepare_analysis_inputs,
 )
 from .aggregator import (
-    AggregateRulesSignature,
     SemanticEquivalenceChecker,
     StrictAggregator,
 )
@@ -44,7 +43,6 @@ __all__ = [
     "LocalAnalyzer",
     "ContrastiveMapRunner",
     "prepare_analysis_inputs",
-    "AggregateRulesSignature",
     "SemanticEquivalenceChecker",
     "StrictAggregator",
     "HumanReviewCLI",

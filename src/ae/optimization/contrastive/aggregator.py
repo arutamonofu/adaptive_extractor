@@ -21,20 +21,23 @@ class SemanticEquivalenceChecker(dspy.Signature):
     You are a strict logic arbiter (Zero-Tolerance Consensus Judge).
     You will be provided with a list of natural language rule formulations extracted from multiple scientific papers for a SINGLE specific field or entity.
     These rules were formulated by independent local AI agents.
+    You are also provided with a `global_dataset_snapshot` which represents the baseline reality of the entire Ground Truth dataset.
 
     ANALYSIS PROTOCOL:
     1. Read all rule formulations provided in the input list.
     2. Ignore syntax, grammar, and synonyms (e.g., 'converted to Celsius' and 'format changed to °C' are logically identical).
-    3. Determine if ALL rules enforce the exact same extraction and formatting logic without any contradictions.
+    3. Verify against the global_dataset_snapshot: If the local rules propose a strict ban or exclusion of something that ACTUALLY EXISTS in the global snapshot, this is a false generalization.
+    4. Determine if ALL rules enforce the exact same extraction and formatting logic without any contradictions, AND they do not conflict with the global baseline reality.
 
     OUTPUT PROTOCOL:
-    - is_unanimous (bool): True ONLY IF 100% of the formulations mean the exact same thing logically. False if there is even one contradiction or alternative condition.
+    - is_unanimous (bool): True ONLY IF 100% of the formulations mean the exact same thing logically AND align with the global reality. False if there is even one contradiction, alternative condition, or conflict with the global snapshot.
     - consolidated_rule (str): If is_unanimous is True, synthesize a single, clear, imperative-mood instruction in English (e.g., 'Always convert temperature to Celsius'). If False, output an empty string.
-    - discrepancy_description (str): If is_unanimous is False, write a detailed explanation of the logical conflict (e.g., '8 agents ignored values without units, but 2 agents extracted them'). If True, output an empty string.
+    - discrepancy_description (str): If is_unanimous is False, write a detailed explanation of the logical conflict (e.g., '8 agents ignored values without units, but the global snapshot shows they are actually valid'). If True, output an empty string.
     """
 
     context_name: str = dspy.InputField(desc="The name of the schema field being evaluated, or 'ENTITY_LEVEL'.")
-    rule_formulations: list[str] = dspy.InputField(desc="List of textual rules extracted from different documents.")
+    rule_formulations: str = dspy.InputField(desc="List of textual rules extracted from different documents.")
+    global_dataset_snapshot: str = dspy.InputField(desc="Statistical snapshot of the entire GT dataset.")
 
     is_unanimous: bool = dspy.OutputField(desc="True if 100% logical consensus is reached, otherwise False.")
     consolidated_rule: str = dspy.OutputField(desc="The unified rule if unanimous, otherwise empty.")
@@ -85,12 +88,18 @@ def extract_json(text: str) -> Any:
 class StrictAggregator:
     """Агрегирует наблюдения и формирует итоговый набор верифицированных правил через точечный семантический судью."""
 
-    def __init__(self, lm: dspy.LM, task_config: TaskConfig, cache_dir: str = "data/analysis"):
+    def __init__(
+        self, 
+        lm: dspy.LM, 
+        task_config: TaskConfig, 
+        cache_dir: str = "data/analysis",
+        global_snapshot: Optional[Dict[str, Any]] = None
+    ):
         self.lm = lm
         self.task_config = task_config
         self.cache_dir = Path(cache_dir)
+        self.global_snapshot = global_snapshot or {}
         self.predictor = dspy.Predict(SemanticEquivalenceChecker)
-
 
     def aggregate(self, analyses: List[DocumentAnalysis]) -> AnalysisResult:
         """Агрегирует наблюдения по всем проанализированным документам через точечный семантический судью."""
@@ -102,7 +111,7 @@ class StrictAggregator:
             )
 
         # ------------------------------------------------------------------ #
-        # Шаг 1: Сбор данных из всех DocumentAnalysis
+        # Шаг 1: Сбор данных из всех DocumentAnalysis (с учетом иерархии)
         # ------------------------------------------------------------------ #
 
         # entity-уровень: список (description, doc_id)
@@ -119,17 +128,21 @@ class StrictAggregator:
                 entity_formulations.append(ent_obs.description)
                 entity_doc_ids.append(doc_id)
 
-            for field_obs in doc_analysis.field_observations:
-                key = (field_obs.field_name, field_obs.observation_type)
-                if key not in field_groups:
-                    field_groups[key] = []
-                field_groups[key].append((field_obs.description, doc_id))
+                # ИЕРАРХИЯ: Извлекаем правила полей только из взятых (included) сущностей
+                if getattr(ent_obs, 'included', False):
+                    for field_obs in getattr(ent_obs, 'field_observations', []):
+                        key = (field_obs.field_name, field_obs.observation_type)
+                        if key not in field_groups:
+                            field_groups[key] = []
+                        field_groups[key].append((field_obs.description, doc_id))
 
         # ------------------------------------------------------------------ #
         # Шаг 2: Точечные LLM-вызовы через SemanticEquivalenceChecker
         # ------------------------------------------------------------------ #
         verified_rules: List[VerifiedRule] = []
         discrepancies: List[Discrepancy] = []
+        
+        global_snapshot_str = json.dumps(self.global_snapshot, ensure_ascii=False)
 
         def _run_checker(
             context_name: str,
@@ -152,6 +165,7 @@ class StrictAggregator:
                     result = self.predictor(
                         context_name=context_name,
                         rule_formulations=formatted_rules,
+                        global_dataset_snapshot=global_snapshot_str
                     )
 
                 # Безопасно парсим булево значение через Pydantic TypeAdapter
@@ -181,7 +195,7 @@ class StrictAggregator:
                         f"n={len(formulations)} формулировок"
                     )
                 else:
-                    # Семантические противоречия: примерный consensus_ratio как доля
+                    # Семантические противоречия: примерный consensus_ratio как доля
                     # большинства (0.5 по умолчанию, точная математика LLM-судьёй не ведёт)
                     disc_idx = len(discrepancies)
                     unique_doc_ids = list(dict.fromkeys(doc_ids))  # порядок сохранён
@@ -248,4 +262,3 @@ class StrictAggregator:
             timestamp=datetime.now().isoformat(),
         )
         return result
-

@@ -1,5 +1,6 @@
 import json
 import logging
+import textwrap
 from typing import List, Optional
 from pathlib import Path
 import click
@@ -29,16 +30,27 @@ class HumanReviewCLI:
         self.resolved_rules: List[VerifiedRule] = []
         self.skipped_count = 0
 
+    def _wrap_text(self, text: str, width: int = 80, initial_indent: str = "  ", subsequent_indent: str = "    ") -> str:
+        """Красиво переносит длинный текст для терминала."""
+        if not text:
+            return ""
+        return textwrap.fill(
+            text, 
+            width=width, 
+            initial_indent=initial_indent, 
+            subsequent_indent=subsequent_indent
+        )
+
     def run(self, auto_skip: bool = False, auto_accept_majority: bool = False) -> ReviewSession:
         """Запускает сессию интерактивного опроса пользователя."""
         # 1. Приветствие и Сводка
         num_rules = len(self.analysis_result.verified_rules)
         num_discrepancies = len(self.analysis_result.discrepancies)
         
-        click.echo("=" * 70)
+        click.echo("=" * 80)
         click.echo(f" Contrastive Analysis Review Session for Task: {self.analysis_result.task_name}")
         click.echo(f" Found: {num_rules} verified rules, {num_discrepancies} discrepancies to resolve.")
-        click.echo("=" * 70)
+        click.echo("=" * 80)
 
         if num_discrepancies == 0:
             click.echo("No discrepancies found. Session completed automatically.")
@@ -67,15 +79,19 @@ class HumanReviewCLI:
             if disc.discrepancy_id in already_resolved_ids:
                 continue
 
-            click.echo(f"\n======================================================================")
-            click.echo(f"  Противоречие {idx + 1} из {num_discrepancies}: Уровень {disc.level}" + (f", Поле '{disc.field_name}'" if disc.field_name else ""))
-            click.echo(f"======================================================================")
+            click.echo(f"\n" + "=" * 80)
+            context_header = f"Противоречие {idx + 1} из {num_discrepancies}: Уровень [{disc.level.upper()}]"
+            if disc.field_name:
+                context_header += f", Поле: '{disc.field_name}'"
+            click.echo(f"  {context_header}")
+            click.echo("=" * 80)
+            
             click.echo(f"  Консенсус: {int(disc.consensus_ratio * 100)}%")
-            click.echo(f"  Проблема: {disc.problem_description}")
-            click.echo(f"  [A] {disc.variant_a}")
-            click.echo(f"  [B] {disc.variant_b}")
-            click.echo(f"  Примеры документов с конфликтами: {', '.join(disc.example_documents)}")
-            click.echo(f"----------------------------------------------------------------------")
+            click.echo(self._wrap_text(f"Проблема: {disc.problem_description}"))
+            click.echo("\n" + self._wrap_text(f"[A] Вариант 1: {disc.variant_a}"))
+            click.echo("\n" + self._wrap_text(f"[B] Вариант 2: {disc.variant_b}"))
+            click.echo(f"\n  Примеры документов: {', '.join(disc.example_documents)}")
+            click.echo("-" * 80)
 
             decision = None
 

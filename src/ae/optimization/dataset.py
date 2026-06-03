@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 import dspy
+import pandas as pd
 
 from ae.core.exceptions import DataValidationError, UseCaseExecutionError
 from ae.core.storage import (
@@ -46,6 +47,51 @@ class ValidationResult:
         if not other.success:
             self.success = False
         return self
+
+
+def get_global_snapshot(df: pd.DataFrame, top_k: int = 10, tail_n: int = 5) -> Dict[str, Any]:
+    """
+    Generate a representative snapshot of the ground truth dataset to provide
+    a 'Baseline Reality' context to the LLM and prevent false generalizations.
+    
+    Args:
+        df: Ground Truth DataFrame.
+        top_k: Number of most frequent categorical values to include.
+        tail_n: Number of random rare categorical values to include.
+        
+    Returns:
+        A dictionary profiling each column.
+    """
+    snapshot = {}
+    for col in df.columns:
+        series = df[col].dropna()
+        if series.empty:
+            continue
+            
+        if pd.api.types.is_numeric_dtype(series):
+            snapshot[col] = {
+                "type": "numeric",
+                "min": float(series.min()),
+                "max": float(series.max()),
+                "median": float(series.median())
+            }
+        else:
+            # Treat as categorical/string
+            series_str = series.astype(str)
+            counts = series_str.value_counts()
+            top = counts.head(top_k).index.tolist()
+            
+            remaining = list(set(series_str.unique()) - set(top))
+            # Sort remaining for reproducibility before sampling
+            remaining.sort()
+            tail = random.sample(remaining, min(tail_n, len(remaining))) if remaining else []
+            
+            snapshot[col] = {
+                "type": "categorical",
+                "values": top + tail
+            }
+            
+    return snapshot
 
 
 class DataValidator:
@@ -434,7 +480,7 @@ class DatasetBuilder:
 
         for doc_id in document_ids:
             try:
-                doc_text = all_docs.get(doc_id)
+                doc_text = all_docs.get(doc_id.lower())
                 if doc_text is None:
                     stats["missing"] += 1
                     logger.debug(f"Document not found: {doc_id}")
